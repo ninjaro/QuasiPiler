@@ -62,6 +62,7 @@ struct token {
 using token_ptr = std::shared_ptr<token>;
 
 struct ast_node {
+    size_t fixed_size { 1 }, full_size { 1 };
     virtual ~ast_node();
 
     virtual ast_node const* first() const noexcept;
@@ -73,6 +74,8 @@ struct ast_node {
     ) const noexcept;
     void dump(std::ostream& os, bool full) const noexcept;
     void dump(std::ostream& os) const noexcept;
+
+    virtual void placeholde();
 };
 
 using ast_node_ptr = std::shared_ptr<ast_node>;
@@ -91,19 +94,21 @@ using token_node_ptr = std::shared_ptr<token_node>;
 enum class group_kind { file, body, list, paren, command, item, key, halt };
 
 struct group_node : ast_node {
-    group_kind kind { group_kind::file };
+    size_t limit;
+    group_kind kind { group_kind::halt };
     std::vector<ast_node_ptr> nodes;
     std::priority_queue<std::pair<size_t, size_t>>
-        weight; /// node_size -> node_index
-    bool placeholder { false };
-    size_t fixed_size { 0 }, full_size { 0 };
+        weights; /// node_size -> node_index
 
+    bool placeholder { false };
+    void append(ast_node_ptr node);
     bool empty() const noexcept override;
     size_t size() const noexcept;
     ast_node const* first() const noexcept override;
     void dump(
         std::ostream& os, const std::string& prefix, bool is_last, bool full
     ) const noexcept override;
+    void placeholde() override;
 };
 
 using group_ptr = std::shared_ptr<group_node>;

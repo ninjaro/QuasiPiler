@@ -22,27 +22,34 @@
  * SOFTWARE.
  */
 
-#ifndef GROUPER_HPP
-#define GROUPER_HPP
+#include "grouper.hpp"
+#include <gtest/gtest.h>
 
-#include "reader.hpp"
+TEST(AstDump, ExampleAST) {
+    // std::ostringstream path_out;
+    // path_out << "test_data/sum.md";
+    // std::ofstream out(path_out.str());
 
-class grouper {
-public:
-    explicit grouper(reader& r, size_t limit = 64);
+    for (int i = 0; i < 12; ++i) {
+        try {
+            std::stringstream idx;
+            idx << std::setfill('0') << std::setw(2) << i;
+            std::ostringstream path_in;
+            path_in << "test_data/test" << idx.str() << ".qc";
+            reader r(path_in.str());
+            grouper g { r };
+            auto res = g.parse_group();
+            // out << "<details><summary>test" << idx.str()
+            // << ".qc:</summary>\n\n ```\n";
 
-    group_ptr parse_group(group_kind kind = group_kind::file);
-
-private:
-    reader& src;
-    size_t limit;
-
-    [[nodiscard]] token peek() const;
-
-    [[nodiscard]] std::runtime_error make_error(
-        const std::string& message,
-        const std::source_location& location = std::source_location::current()
-    ) const;
-};
-
-#endif // GROUPER_HPP
+            std::ostringstream path_out;
+            path_out << "test_data/test" << idx.str() << ".dump";
+            std::ofstream out(path_out.str());
+            res->dump(out, "", true, true);
+            // out << "```\n </details> \n\n";
+        } catch (const std::runtime_error& e) {
+            std::cout << "Error processing test case " << i << ": " << e.what()
+                      << "\n\n";
+        }
+    }
+}

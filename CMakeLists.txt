@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.29)
+cmake_minimum_required(VERSION 3.28)
 
 project(qpiler VERSION 1.0.0 LANGUAGES CXX)
 
@@ -68,6 +68,8 @@ if (BUILD_TESTS)
             tests/main.cpp
 
             tests/reader_tests.cpp
+            tests/ast_tests.cpp
+            tests/grouper_tests.cpp
     )
 
     target_link_libraries(unit_tests

@@ -373,3 +373,10 @@ void reader::jump_to_position(
     this->line = line;
     this->column = column;
 }
+
+void reader::interrupt() {
+    if (ifs.is_open() && ifs.eof()) {
+        return;
+    }
+    throw make_error("interrupted");
+}

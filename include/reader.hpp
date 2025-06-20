@@ -45,6 +45,8 @@ public:
 
     void jump_to_position(std::streamoff position, int line, int column);
 
+    void interrupt();
+
 private:
     std::ifstream ifs;
     std::string buffer;

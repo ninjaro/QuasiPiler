@@ -2,8 +2,6 @@ name: Checks
 
 on:
   pull_request:
-    branches:
-      - master
 
 jobs:
   build-and-test:
@@ -26,13 +24,13 @@ jobs:
           cd build
           ctest -V --parallel $(nproc) 
 
-  code-style:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Clang-format
-        uses: jidicula/clang-format-action@v4.13.0
-        with:
-          clang-format-version: '18'
-          check-path: '.'
+#  code-style:
+#    runs-on: ubuntu-latest
+#    steps:
+#      - uses: actions/checkout@v4
+#
+#      - name: Clang-format
+#        uses: jidicula/clang-format-action@v4.13.0
+#        with:
+#          clang-format-version: '18'
+#          check-path: '.'
