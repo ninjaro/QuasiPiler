@@ -2,7 +2,8 @@ name: Docs & Coverage
 
 on:
   push:
-    branches: [ "master" ]
+    branches:
+      - master
 
   workflow_dispatch:
 
@@ -24,7 +25,9 @@ jobs:
       - uses: MarkusJx/googletest-installer@v1.1
 
       - name: Install Dependencies
-        run: sudo apt-get update && sudo apt-get install -y doxygen graphviz lcov llvm libcxxopts-dev
+        run: |
+          sudo apt-get update 
+          sudo apt-get install -y doxygen graphviz lcov llvm libcxxopts-dev
 
       - name: Generate Doxygen
         run: doxygen Doxyfile
