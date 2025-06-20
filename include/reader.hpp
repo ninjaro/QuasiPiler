@@ -27,39 +27,9 @@
 
 #include <filesystem>
 #include <fstream>
-#include <memory>
 #include <source_location>
 
-enum class token_kind {
-    eof,
-    open_bracket,
-    close_bracket,
-    separator,
-    keyword,
-    string,
-    comment,
-    whitespace,
-    integer,
-    floating,
-    special_character
-};
-
-struct token {
-    token_kind kind;
-    int line;
-    int column;
-    std::streamoff file_offset;
-    std::string word;
-
-    virtual ~token();
-
-    virtual void dump(std::ostream& os, const std::string& prefix, bool is_last)
-        const noexcept;
-
-    void dump(std::ostream& os) const noexcept;
-};
-
-using token_ptr = std::shared_ptr<token>;
+#include "ast.hpp"
 
 class reader {
 public:

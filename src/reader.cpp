@@ -373,22 +373,3 @@ void reader::jump_to_position(
     this->line = line;
     this->column = column;
 }
-
-token::~token() = default;
-
-static const char* token_kind_name(const token_kind k) noexcept {
-    static constexpr const char* names[]
-        = { "eof",     "open_bracket", "close_bracket",    "separator",
-            "keyword", "string",       "comment",          "whitespace",
-            "integer", "floating",     "special_character" };
-    return names[static_cast<size_t>(k)];
-}
-
-void token::dump(
-    std::ostream& os, const std::string& prefix, const bool is_last
-) const noexcept {
-    os << prefix << (is_last ? "`-" : "|-") << "Token(" << token_kind_name(kind)
-       << ") <" << line << ":" << column << ">(\"" << word << "\")\n";
-}
-
-void token::dump(std::ostream& os) const noexcept { dump(os, "", true); }

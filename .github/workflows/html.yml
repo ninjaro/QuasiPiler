@@ -32,7 +32,7 @@ jobs:
       - name: Build with coverage
         run: |
           cmake -B build -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTS=ON -DCOVERAGE=ON
-          cmake --build build --target coverage
+          cmake --build build --target coverage --parallel $(nproc)
 
       - name: Upload results to Codecov
         uses: codecov/codecov-action@v5

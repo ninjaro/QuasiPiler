@@ -5,12 +5,12 @@ project(qpiler VERSION 1.0.0 LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
     add_compile_options(-Og -g -fno-omit-frame-pointer
             -Werror
-
-            -Wno-deprecated-declarations
+#            -Wno-deprecated-declarations
 
             -Wall
             -Wextra
@@ -36,12 +36,16 @@ endif ()
 
 add_library(qpiler_lib
         src/reader.cpp
+        src/ast.cpp
+        src/grouper.cpp
 )
 
 target_include_directories(qpiler_lib PUBLIC include)
 
 target_precompile_headers(qpiler_lib PRIVATE
         include/reader.hpp
+        include/ast.hpp
+        include/grouper.hpp
 )
 
 set_target_properties(qpiler_lib PROPERTIES UNITY_BUILD ON)
