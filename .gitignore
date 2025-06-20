@@ -1,6 +1,9 @@
 # Prerequisites
 *.d
 
+# Clion files
+.idea/
+
 # Compiled Object files
 *.slo
 *.lo
@@ -26,7 +29,20 @@
 *.a
 *.lib
 
+# Debug files
+cmake-build-debug*/
+
 # Executables
 *.exe
 *.out
 *.app
+
+# QT compiled translation file
+*.qm
+
+build/
+doc/
+cov/
+
+CMakeLists.txt.user
+CMakeLists.txt.user.*
