@@ -24,56 +24,49 @@
 
 #include "ast.hpp"
 
-token::~token() = default;
-
-static const char* token_kind_name(const token_kind k) noexcept {
-    static constexpr const char* names[]
-        = { "eof",     "open_bracket", "close_bracket",    "separator",
-            "keyword", "string",       "comment",          "whitespace",
-            "integer", "floating",     "special_character" };
-    return names[static_cast<size_t>(k)];
-}
-
-void token::dump(
-    std::ostream& os, const std::string& prefix, const bool is_last
-) const noexcept {
-    os << prefix << (is_last ? "`-" : "|-") << "Token(" << token_kind_name(kind)
-       << ") <" << line << ":" << column << ">(\"" << word << "\")\n";
-}
-
-void token::dump(std::ostream& os) const noexcept { dump(os, "", true); }
-
 ast_node::~ast_node() = default;
 
-ast_node const* ast_node::first() const noexcept { return this; }
+ast_node const* ast_node::get() const noexcept { return this; }
+
+ast_node const* ast_node::first() const { return this; }
 
 bool ast_node::empty() const noexcept { return true; }
 
 void ast_node::dump(
     std::ostream& os, const std::string& prefix, const bool is_last, bool
-) const noexcept {
+) const {
     os << prefix << (is_last ? "`-" : "|-") << "Null\n";
 }
 
-void ast_node::dump(std::ostream& os, const bool full) const noexcept {
+void ast_node::dump(std::ostream& os, const bool full) const {
     dump(os, "", true, full);
 }
 
-void ast_node::dump(std::ostream& os) const noexcept { dump(os, true); }
-
-void ast_node::placeholde() {
-    throw std::runtime_error(
-        "cannot placeholde a base ast_node, use derived classes"
-    );
-}
+void ast_node::dump(std::ostream& os) const { dump(os, true); }
 
 bool token_node::empty() const noexcept { return false; }
 
 void token_node::dump(
     std::ostream& os, const std::string& prefix, const bool is_last, bool
-) const noexcept {
+) const {
     os << prefix << (is_last ? "`-" : "|-") << "TokenNode\n";
     value.dump(os, prefix + (is_last ? "  " : "| "), true);
+}
+
+void placeholder_node::dump(
+    std::ostream& os, const std::string& prefix, bool is_last, bool full
+) const {
+    if (full && src != nullptr) {
+        const auto position = src->get_position();
+        src->jump_to_position(value.pos);
+        grouper g { *src };
+        auto group = g.parse_group(kind);
+        group->dump(os, prefix, is_last, full);
+        src->jump_to_position(position);
+    } else {
+        os << prefix << (is_last ? "`-" : "|-") << "PlaceholderNode ["
+           << full_size << " nested nodes]\n";
+    }
 }
 
 static const char* group_kind_name(const group_kind k) noexcept {
@@ -93,7 +86,7 @@ void group_node::append(ast_node_ptr node) {
         auto [weight, index] = weights.top();
         weights.pop();
         fixed_size += 1 - weight;
-        nodes[index]->placeholde();
+        squeeze(index);
     }
     if (full_size > limit) {
         throw std::runtime_error("limit is too small for group node");
@@ -104,11 +97,18 @@ bool group_node::empty() const noexcept { return size() == 0; }
 
 size_t group_node::size() const noexcept { return nodes.size(); }
 
-ast_node const* group_node::first() const noexcept {
+ast_node const* group_node::get() const noexcept {
     if (size() == 1) {
-        return nodes[0]->first();
+        return nodes[0]->get();
     }
-    return ast_node::first();
+    return ast_node::get();
+}
+
+ast_node const* group_node::first() const {
+    if (size() == 0) {
+        throw std::runtime_error("group node is empty");
+    }
+    return nodes[0]->first();
 }
 
 void group_node::dump(
@@ -119,15 +119,15 @@ void group_node::dump(
         os << prefix << (is_last ? "`-" : "|-");
     }
     os << "Group(" << group_kind_name(kind) << ")";
-    if (placeholder) {
-        os << " <placeholder with " << full_size << " nested nodes>";
-        if (full) {
-            // extract squeezed
-        }
-    }
-    if (!full) {
-        os << " <" << fixed_size << "/" << full_size << " nested nodes>";
-    }
+    // if (placeholder) {
+    //     os << " <placeholder with " << full_size << " nested nodes>";
+    //     if (full) {
+    //         // extract squeezed
+    //     }
+    // }
+    // if (!full) {
+    //     os << " <" << fixed_size << "/" << full_size << " nested nodes>";
+    // }
     os << "\n";
     const std::string child_prefix
         = prefix + (kind != group_kind::file ? (is_last ? "  " : "| ") : "");
@@ -136,7 +136,29 @@ void group_node::dump(
     }
 }
 
-void group_node::placeholde() {
-    placeholder = true;
-    fixed_size = 1;
+void group_node::squeeze(const size_t index) {
+    if (index >= nodes.size()) {
+        throw std::out_of_range("index out of range for group node");
+    }
+    auto group = std::dynamic_pointer_cast<group_node>(nodes[index]);
+    if (!group) {
+        std::stringstream ss;
+        nodes[index]->dump(ss, "\t", true, true);
+        throw std::runtime_error(
+            "node at index " + std::to_string(index)
+            + " is not a group node: \n" + ss.str()
+        );
+    }
+    const auto* first = dynamic_cast<const token_node*>(group->first());
+    if (!first) {
+        throw std::runtime_error(
+            "cannot squeeze group node with non-token first element"
+        );
+    }
+    const auto ph = std::make_shared<placeholder_node>();
+    ph->kind = group->kind;
+    ph->value = first->value;
+    ph->full_size = group->full_size;
+    ph->fixed_size = 1;
+    nodes[index] = ph;
 }

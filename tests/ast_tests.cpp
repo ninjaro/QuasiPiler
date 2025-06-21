@@ -37,7 +37,7 @@ TEST(AstDump, ExampleAST) {
             std::ostringstream path_in;
             path_in << "test_data/test" << idx.str() << ".qc";
             reader r(path_in.str());
-            grouper g { r };
+            grouper g { r, 1024 };
             auto res = g.parse_group();
             // out << "<details><summary>test" << idx.str()
             // << ".qc:</summary>\n\n ```\n";

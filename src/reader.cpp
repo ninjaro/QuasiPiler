@@ -26,6 +26,25 @@
 
 #include <cassert>
 
+token::~token() = default;
+
+static const char* token_kind_name(const token_kind k) noexcept {
+    static constexpr const char* names[]
+        = { "eof",     "open_bracket", "close_bracket",    "separator",
+            "keyword", "string",       "comment",          "whitespace",
+            "integer", "floating",     "special_character" };
+    return names[static_cast<size_t>(k)];
+}
+
+void token::dump(
+    std::ostream& os, const std::string& prefix, const bool is_last
+) const noexcept {
+    os << prefix << (is_last ? "`-" : "|-") << "Token(" << token_kind_name(kind)
+       << ") <" << pos.line << ":" << pos.column << ">(\"" << word << "\")\n";
+}
+
+void token::dump(std::ostream& os) const noexcept { dump(os, "", true); }
+
 reader::reader(
     const std::filesystem::path& path, const std::streamsize buffer_size
 )
@@ -270,9 +289,7 @@ token_kind reader::read_number(std::string& into) {
 
 void reader::init_token(token& t) const noexcept {
     t.word.clear();
-    t.line = line;
-    t.column = column;
-    t.file_offset = file_offset + static_cast<std::streamoff>(buffer_position);
+    t.pos = get_position();
 }
 
 std::runtime_error reader::make_error(
@@ -355,23 +372,21 @@ void reader::next_token(token& out) {
     }
 }
 
-void reader::jump_to_position(
-    const std::streamoff position, const int line, const int column
-) {
-    if (position < 0) {
+void reader::jump_to_position(const position position) {
+    if (position.offset < 0) {
         throw make_error("position is out of range");
     }
     if (!ifs.is_open()) {
-        buffer_position = static_cast<size_t>(position);
+        buffer_position = static_cast<size_t>(position.offset);
         if (buffer_position > buffer.size()) {
             throw make_error("position is out of range");
         }
     } else {
-        ifs.seekg(position, std::ios::beg);
+        ifs.seekg(position.offset, std::ios::beg);
         reload_buffer();
     }
-    this->line = line;
-    this->column = column;
+    this->line = position.line;
+    this->column = position.column;
 }
 
 void reader::interrupt() {
@@ -379,4 +394,9 @@ void reader::interrupt() {
         return;
     }
     throw make_error("interrupted");
+}
+
+position reader::get_position() const {
+    return { file_offset + static_cast<std::streamoff>(buffer_position), line,
+             column };
 }

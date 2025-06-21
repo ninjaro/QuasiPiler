@@ -68,7 +68,7 @@ TEST(GrouperTest, ParsesNestedListBody) {
     ASSERT_EQ(res->kind, group_kind::file);
     ASSERT_EQ(res->size(), 1u);
 
-    auto* list = dynamic_cast<const group_node*>(res->first());
+    auto* list = dynamic_cast<const group_node*>(res->get());
     ASSERT_NE(list, nullptr);
     EXPECT_EQ(list->kind, group_kind::list);
     ASSERT_EQ(list->size(), 2u);

@@ -25,7 +25,7 @@
 #ifndef GROUPER_HPP
 #define GROUPER_HPP
 
-#include "reader.hpp"
+#include "ast.hpp"
 
 class grouper {
 public:

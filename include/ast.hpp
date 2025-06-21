@@ -30,68 +30,49 @@
 #include <string>
 #include <vector>
 
-enum class token_kind {
-    eof,
-    open_bracket,
-    close_bracket,
-    separator,
-    keyword,
-    string,
-    comment,
-    whitespace,
-    integer,
-    floating,
-    special_character
-};
-
-struct token {
-    token_kind kind;
-    int line;
-    int column;
-    std::streamoff file_offset;
-    std::string word;
-
-    virtual ~token();
-
-    virtual void dump(std::ostream& os, const std::string& prefix, bool is_last)
-        const noexcept;
-
-    void dump(std::ostream& os) const noexcept;
-};
-
-using token_ptr = std::shared_ptr<token>;
+#include "reader.hpp"
 
 struct ast_node {
     size_t fixed_size { 1 }, full_size { 1 };
     virtual ~ast_node();
 
-    virtual ast_node const* first() const noexcept;
+    [[nodiscard]] virtual ast_node const* get() const noexcept;
+    [[nodiscard]] virtual ast_node const* first() const;
 
-    virtual bool empty() const noexcept;
+    [[nodiscard]] virtual bool empty() const noexcept;
 
     virtual void dump(
         std::ostream& os, const std::string& prefix, bool is_last, bool full
-    ) const noexcept;
-    void dump(std::ostream& os, bool full) const noexcept;
-    void dump(std::ostream& os) const noexcept;
-
-    virtual void placeholde();
+    ) const;
+    void dump(std::ostream& os, bool full) const;
+    void dump(std::ostream& os) const;
 };
 
 using ast_node_ptr = std::shared_ptr<ast_node>;
 
 struct token_node : ast_node {
     token value;
-    bool empty() const noexcept override;
+    [[nodiscard]] bool empty() const noexcept override;
 
     void dump(
         std::ostream& os, const std::string& prefix, bool is_last, bool full
-    ) const noexcept override;
+    ) const override;
 };
 
 using token_node_ptr = std::shared_ptr<token_node>;
 
 enum class group_kind { file, body, list, paren, command, item, key, halt };
+
+struct placeholder_node : token_node {
+    reader* src { nullptr };
+    group_kind kind { group_kind::halt };
+
+    void dump(
+        std::ostream& os, const std::string& prefix, bool is_last, bool full
+    ) const override;
+};
+
+using placeholder_node_ptr = std::shared_ptr<placeholder_node>;
 
 struct group_node : ast_node {
     size_t limit;
@@ -100,15 +81,15 @@ struct group_node : ast_node {
     std::priority_queue<std::pair<size_t, size_t>>
         weights; /// node_size -> node_index
 
-    bool placeholder { false };
     void append(ast_node_ptr node);
-    bool empty() const noexcept override;
-    size_t size() const noexcept;
-    ast_node const* first() const noexcept override;
+    [[nodiscard]] bool empty() const noexcept override;
+    [[nodiscard]] size_t size() const noexcept;
+    [[nodiscard]] ast_node const* get() const noexcept override;
+    [[nodiscard]] ast_node const* first() const override;
     void dump(
         std::ostream& os, const std::string& prefix, bool is_last, bool full
     ) const noexcept override;
-    void placeholde() override;
+    void squeeze(size_t index);
 };
 
 using group_ptr = std::shared_ptr<group_node>;
