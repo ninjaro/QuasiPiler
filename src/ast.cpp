@@ -30,6 +30,12 @@ ast_node const* ast_node::get() const noexcept { return this; }
 
 ast_node const* ast_node::first() const { return this; }
 
+const position& ast_node::get_start() const {
+    throw std::runtime_error(
+        "get_start() is not implemented for ast_node, use derived classes"
+    );
+}
+
 bool ast_node::empty() const noexcept { return true; }
 
 void ast_node::dump(
@@ -45,6 +51,8 @@ void ast_node::dump(std::ostream& os, const bool full) const {
 void ast_node::dump(std::ostream& os) const { dump(os, true); }
 
 bool token_node::empty() const noexcept { return false; }
+
+const position& token_node::get_start() const { return value.pos; }
 
 void token_node::dump(
     std::ostream& os, const std::string& prefix, const bool, bool
@@ -67,29 +75,35 @@ void placeholder_node::dump(
 ) const {
     if (full && src != nullptr) {
         const auto position = src->get_position();
-        src->jump_to_position(value.pos);
-        // char pk = src->peek_char();
+        src->jump_to_position(start);
         grouper g { *src, limit };
         try {
             auto group = g.parse(kind);
             group->dump(os, prefix, is_last, full);
         } catch (const std::runtime_error& e) {
-            os << "[PlaceholderNode-Error] during parsing at position <"
-               << position.line << ":" << position.column << ">.";
-            // with \"" << pk << "\".\n";
-            os << prefix << "  Error: " << e.what() << "\n";
+            src->jump_to_position(start);
+            token current;
+            src->next_token(current);
+            std::ostringstream msg;
+            msg << "[PlaceholderNode-Error] during parsing at position <"
+                << position.line << ":" << position.column
+                << "> with first token: ";
+            current.dump(msg);
+            msg << prefix << e.what() << "\n";
+            throw std::runtime_error(msg.str());
         }
         src->jump_to_position(position);
     } else {
-        os << prefix << (is_last ? "`-" : "|-") << "PlaceholderNode ["
-           << full_size << " nested nodes]\n";
+        os << prefix << (is_last ? "`-" : "|-") << "Placeholder("
+           << group_kind_name(kind) << ") [" << full_size << " nested nodes]\n";
     }
 }
 
 void group_node::append(ast_node_ptr node, const reader& src) {
-    fixed_size += node->fixed_size;
-    full_size += node->full_size;
-    if (node->fixed_size > 1) {
+    size_t exclude = (size() == 0 ? 1 : 0);
+    fixed_size += node->fixed_size - exclude;
+    full_size += node->full_size - exclude;
+    if (node->fixed_size > 1 && std::dynamic_pointer_cast<group_node>(node)) {
         weights.emplace(node->fixed_size, size());
     }
     nodes.push_back(std::move(node));
@@ -147,6 +161,15 @@ void group_node::dump(
     }
 }
 
+const position& group_node::get_start() const {
+    if (size() == 0) {
+        throw std::runtime_error(
+            "group node is empty, cannot get start position"
+        );
+    }
+    return nodes[0]->get_start();
+}
+
 void group_node::squeeze(const size_t index, const reader& src) {
     if (index >= nodes.size()) {
         throw std::out_of_range("index out of range for group node");
@@ -160,21 +183,39 @@ void group_node::squeeze(const size_t index, const reader& src) {
             + " is not a group node: \n" + ss.str()
         );
     }
-    const auto* first = dynamic_cast<const token_node*>(group->first());
-    if (!first) {
+    if (group->nodes.empty()) {
         throw std::runtime_error(
-            "cannot squeeze group node with non-token first element"
+            "cannot squeeze empty group node at index " + std::to_string(index)
         );
     }
     const auto ph = std::make_shared<placeholder_node>();
     ph->src = const_cast<reader*>(&src);
     ph->limit = group->limit;
     ph->kind = group->kind;
-    ph->value = first->value;
+    if (auto wn = std::dynamic_pointer_cast<wrapped_node>(group)) {
+        ph->start = wn->nodes[0]->get_start();
+    } else {
+        ph->start = group->get_start();
+    }
     ph->full_size = group->full_size;
     ph->fixed_size = 1;
     nodes[index] = ph;
 }
+
+void group_node::pop_back() {
+    if (nodes.empty()) {
+        throw std::runtime_error("cannot pop from empty group node");
+    }
+    fixed_size -= nodes.back()->fixed_size;
+    full_size -= nodes.back()->full_size;
+    nodes.pop_back();
+    if (nodes.empty()) {
+        fixed_size = 1;
+        full_size = 1;
+    }
+}
+
+const position& wrapped_node::get_start() const { return start; }
 
 callexp_node::callexp_node(const token& name) { value = name; }
 

@@ -38,6 +38,7 @@ struct ast_node {
 
     [[nodiscard]] virtual ast_node const* get() const noexcept;
     [[nodiscard]] virtual ast_node const* first() const;
+    virtual const position& get_start() const;
 
     [[nodiscard]] virtual bool empty() const noexcept;
 
@@ -53,7 +54,7 @@ using ast_node_ptr = std::shared_ptr<ast_node>;
 struct token_node : ast_node {
     token value;
     [[nodiscard]] bool empty() const noexcept override;
-
+    const position& get_start() const override;
     void dump(
         std::ostream& os, const std::string& prefix, bool is_last, bool full
     ) const override;
@@ -64,17 +65,6 @@ using token_node_ptr = std::shared_ptr<token_node>;
 enum class group_kind { file, body, list, paren, command, item, key, halt };
 
 [[nodiscard]] const char* group_kind_name(group_kind k) noexcept;
-
-struct placeholder_node : token_node {
-    reader* src { nullptr };
-    group_kind kind { group_kind::halt };
-    size_t limit {};
-    void dump(
-        std::ostream& os, const std::string& prefix, bool is_last, bool full
-    ) const override;
-};
-
-using placeholder_node_ptr = std::shared_ptr<placeholder_node>;
 
 struct group_node : ast_node {
     size_t limit;
@@ -91,10 +81,28 @@ struct group_node : ast_node {
     void dump(
         std::ostream& os, const std::string& prefix, bool is_last, bool full
     ) const override;
+    const position& get_start() const override;
     void squeeze(size_t index, const reader& src);
+    void pop_back();
 };
 
 using group_ptr = std::shared_ptr<group_node>;
+
+struct wrapped_node : group_node {
+    position start {};
+    const position& get_start() const override;
+};
+
+using wrapped_ptr = std::shared_ptr<wrapped_node>;
+
+struct placeholder_node : wrapped_node {
+    reader* src { nullptr };
+    void dump(
+        std::ostream& os, const std::string& prefix, bool is_last, bool full
+    ) const override;
+};
+
+using placeholder_node_ptr = std::shared_ptr<placeholder_node>;
 
 struct callexp_node : token_node {
     ast_node_ptr paren;

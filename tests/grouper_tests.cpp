@@ -22,7 +22,6 @@
  * SOFTWARE.
  */
 
-#include "ast.hpp"
 #include "grouper.hpp"
 #include <gtest/gtest.h>
 
@@ -102,11 +101,18 @@ TEST(GrouperTest, ConstructorEnforcesLimit) {
 
 TEST(GrouperTest, LimitTooSmallThrows) {
     for (auto [str, lim] : std::vector<std::pair<std::string, size_t>> {
-             { "{a;[b,c,d];e}", 3 },
-             { "a,b,c,d,e,f", 6 },
-             { "{[a,a,a,a,a],[b,b,b,b]}", 5 } }) {
-        reader r { str };
-        grouper g { r, lim };
-        EXPECT_THROW(g.parse(), std::runtime_error);
+             { "{a;[b,c,d];e}", 2 },
+             { "a,b,c,d,e,f", 5 },
+             { "{[a,a,a,a,a],[b,b,b,b]}", 4 } }) {
+        {
+            reader r { str };
+            grouper g { r, lim };
+            EXPECT_THROW(g.parse(), std::runtime_error);
+        }
+        {
+            reader r { str };
+            grouper g { r, lim + 1 };
+            EXPECT_NO_THROW(g.parse());
+        }
     }
 }

@@ -37,11 +37,12 @@ private:
     reader& src;
     size_t limit;
     token current;
+    position pos {};
     bool reuse { false };
 
-    [[nodiscard]] token peek() const;
-    [[nodiscard]] group_ptr identify(const group_ptr& group) const;
-    group_ptr parse_group(group_kind kind);
+    void peek();
+    void identify(const group_ptr& group, const group_ptr& result) const;
+    void parse_group(group_kind kind, group_ptr& group);
 
     [[nodiscard]] std::runtime_error make_error(
         const std::string& message, const group_ptr& context = {},

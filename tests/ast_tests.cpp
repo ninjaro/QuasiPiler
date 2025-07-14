@@ -33,15 +33,15 @@ TEST(AstDump, ExamplePartAST) {
             std::ostringstream path_in;
             path_in << "test_data/test" << idx.str() << ".qc";
             reader r(path_in.str());
-            grouper g { r, 60 };
+            grouper g { r, 512 };
             auto res = g.parse();
             std::ostringstream path_out;
             path_out << "test_data/test" << idx.str() << ".dump";
             std::ofstream out(path_out.str());
             res->dump(out, "", true, false);
         } catch (const std::runtime_error& e) {
-            std::cout << "Error processing test case " << i << ": " << e.what()
-                      << "\n\n";
+            std::cout << "Error processing test case " << i << ": \n"
+                      << e.what() << "\n\n";
         }
     }
 }
@@ -54,25 +54,15 @@ TEST(AstDump, ExampleFullAST) {
             std::ostringstream path_in;
             path_in << "test_data/test" << idx.str() << ".qc";
             reader r(path_in.str());
-            size_t extra_size = 0;
-            if (i == 3) {
-                extra_size = 7;
-            }
-            if (i == 5) {
-                extra_size = 22;
-            }
-            if (i == 9) {
-                extra_size = 5;
-            }
-            grouper g { r, 60 + extra_size };
+            grouper g { r, 512 };
             auto res = g.parse();
             std::ostringstream path_out;
             path_out << "test_data/test" << idx.str() << ".full-dump";
             std::ofstream out(path_out.str());
             res->dump(out, "", true, true);
         } catch (const std::runtime_error& e) {
-            std::cout << "Error processing test case " << i << ": " << e.what()
-                      << "\n\n";
+            std::cout << "Error processing test case " << i << ": \n"
+                      << e.what() << "\n\n";
         }
     }
 }

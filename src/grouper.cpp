@@ -32,20 +32,30 @@ grouper::grouper(reader& r, const size_t limit)
     }
 }
 
-group_ptr grouper::parse(group_kind kind) {
-    auto group = parse_group(kind);
-    return identify(group);
-    // return group;
+group_ptr grouper::parse(const group_kind kind) {
+    group_ptr group, result;
+    if (kind == group_kind::body || kind == group_kind::list
+        || kind == group_kind::paren) {
+        group = std::make_shared<wrapped_node>();
+        result = std::make_shared<wrapped_node>();
+    } else {
+        group = std::make_shared<group_node>();
+        result = std::make_shared<group_node>();
+    }
+    group->limit = limit;
+    group->kind = kind;
+    result->limit = limit;
+    result->kind = kind;
+    parse_group(kind, group);
+    identify(group, result);
+    return result;
 }
 
-group_ptr grouper::parse_group(const group_kind kind) {
-    auto group = std::make_shared<group_node>();
-    group->limit = limit;
+void grouper::parse_group(const group_kind kind, group_ptr& group) {
     auto top = std::make_shared<group_node>();
     top->limit = limit;
     while (true) {
-        current = peek();
-        reuse = false;
+        peek();
         if (current.kind == token_kind::separator) {
             if (current.word == ":") {
                 top->kind = group_kind::key;
@@ -58,7 +68,8 @@ group_ptr grouper::parse_group(const group_kind kind) {
             }
             if (top->kind == kind) {
                 if (group->empty()) {
-                    return top;
+                    group = top;
+                    return;
                 }
                 try {
                     group->append(top, src);
@@ -97,7 +108,13 @@ group_ptr grouper::parse_group(const group_kind kind) {
                 );
             }
             try {
-                top->append(parse(sub_kind), src);
+                wrapped_ptr wn = std::make_shared<wrapped_node>();
+                wn->start = pos;
+                wn->limit = limit;
+                wn->kind = sub_kind;
+                auto gr = std::dynamic_pointer_cast<group_node>(wn);
+                parse_group(sub_kind, gr);
+                top->append(gr, src);
             } catch (const std::runtime_error& e) {
                 std::stringstream msg;
                 msg << e.what() << ". group limit exceeded";
@@ -129,10 +146,10 @@ group_ptr grouper::parse_group(const group_kind kind) {
             }
             if (kind == group_kind::halt) {
                 reuse = true;
-                return group;
+                return;
             }
             if (group->kind == kind) {
-                return group;
+                return;
             }
             throw make_error(
                 "wrong group kind. expected: "
@@ -154,37 +171,39 @@ group_ptr grouper::parse_group(const group_kind kind) {
     }
 }
 
-token grouper::peek() const {
+void grouper::peek() {
     if (reuse) {
-        return current;
+        reuse = false;
+        return;
     }
-    token next;
     do {
-        src.next_token(next);
-    } while (next.kind == token_kind::whitespace
-             || next.kind == token_kind::comment);
-    return next;
+        pos = src.get_position();
+        src.next_token(current);
+    } while (current.kind == token_kind::whitespace
+             || current.kind == token_kind::comment);
 }
 
-group_ptr grouper::identify(const group_ptr& group) const {
-    auto result = std::make_shared<group_node>();
-    result->limit = limit;
-    result->kind = group->kind;
-
+void grouper::identify(const group_ptr& group, const group_ptr& result) const {
     bool wait_for_condition = false;
     bool wait_for_body = false;
 
-    for (size_t i = 0; i < group->size(); ++i) {
-        auto& node = group->nodes[i];
+    for (auto& node : group->nodes) {
         bool is_group = false;
         group_kind kind {};
 
         if (auto sub = std::dynamic_pointer_cast<group_node>(node)) {
+            group_ptr inode;
             kind = sub->kind;
-            is_group = true;
-        } else if (auto sub
-                   = std::dynamic_pointer_cast<placeholder_node>(node)) {
-            kind = sub->kind;
+            if (kind == group_kind::body || kind == group_kind::list
+                || kind == group_kind::paren) {
+                inode = std::make_shared<wrapped_node>();
+            } else {
+                inode = std::make_shared<group_node>();
+            }
+            inode->limit = limit;
+            inode->kind = kind;
+            identify(sub, inode);
+            node = inode;
             is_group = true;
         }
         if (wait_for_condition && (!is_group || kind != group_kind::paren)) {
@@ -193,7 +212,7 @@ group_ptr grouper::identify(const group_ptr& group) const {
         if (is_group) {
             if (!result->empty()) {
                 auto top = result->nodes.back();
-                result->nodes.pop_back();
+                result->pop_back();
                 if (auto tok = std::dynamic_pointer_cast<token_node>(top)) {
                     if (kind == group_kind::paren) {
                         if (auto cond
@@ -235,7 +254,8 @@ group_ptr grouper::identify(const group_ptr& group) const {
         if (auto tok = std::dynamic_pointer_cast<token_node>(node)) {
             if (tok->value.kind == token_kind::keyword) {
                 const auto& w = tok->value.word;
-                if (w == "if" || w == "while" || w == "for" || w == "catch") {
+                if (w == "if" || w == "elif" || w == "while" || w == "for"
+                    || w == "catch") {
                     wait_for_condition = true;
                     auto cond = std::make_shared<condition_node>(tok->value);
                     result->append(cond, src);
@@ -250,7 +270,8 @@ group_ptr grouper::identify(const group_ptr& group) const {
                 if (w == "return" || w == "continue" || w == "break") {
                     auto jmp = std::make_shared<jump_node>(tok->value);
                     result->append(jmp, src);
-                    wait_for_body = (w == "return");
+                    wait_for_body = (w == "return" || w == "throw");
+                    continue;
                 }
             }
         }
@@ -261,7 +282,7 @@ group_ptr grouper::identify(const group_ptr& group) const {
         body->limit = limit;
         while (!result->empty()) {
             auto top = result->nodes.back();
-            result->nodes.pop_back();
+            result->pop_back();
             if (auto tok = std::dynamic_pointer_cast<token_node>(top)) {
                 if (auto ctrl = std::dynamic_pointer_cast<control_node>(tok)) {
                     ctrl->set_body(body);
@@ -279,7 +300,6 @@ group_ptr grouper::identify(const group_ptr& group) const {
             body->append(top, src);
         }
     }
-    return result;
 }
 
 std::runtime_error grouper::make_error(
