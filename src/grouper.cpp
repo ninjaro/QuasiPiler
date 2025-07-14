@@ -205,6 +205,70 @@ void grouper::identify(const group_ptr& group, const group_ptr& result) const {
             identify(sub, inode);
             node = inode;
             is_group = true;
+
+            if ((kind == group_kind::halt || kind == group_kind::command)
+                && !inode->nodes.empty()) {
+                auto first = inode->nodes.front();
+                std::string kw;
+                if (auto ctrl
+                    = std::dynamic_pointer_cast<control_node>(first)) {
+                    kw = ctrl->value.word;
+                } else if (auto cond
+                           = std::dynamic_pointer_cast<condition_node>(first)) {
+                    kw = cond->value.word;
+                }
+                if (kw == "else" || kw == "elif" || kw == "catch"
+                    || kw == "finally") {
+                    if (result->empty()) {
+                        throw make_error(
+                            "orphan secondary keyword: " + kw, inode
+                        );
+                    }
+                    auto prev = std::dynamic_pointer_cast<group_node>(
+                        result->nodes.back()
+                    );
+                    if (!prev || prev->nodes.empty()
+                        || prev->kind != group_kind::command) {
+                        throw make_error(
+                            "invalid predecessor for keyword: " + kw, inode
+                        );
+                    }
+                    auto last = prev->nodes.back();
+                    std::string prev_kw;
+                    if (auto c
+                        = std::dynamic_pointer_cast<control_node>(last)) {
+                        prev_kw = c->value.word;
+                    } else if (auto c
+                               = std::dynamic_pointer_cast<condition_node>(
+                                   last
+                               )) {
+                        prev_kw = c->value.word;
+                    } else {
+                        throw make_error(
+                            "invalid predecessor for keyword: " + kw, inode
+                        );
+                    }
+                    bool allowed = false;
+                    if (kw == "else" || kw == "elif") {
+                        allowed = (prev_kw == "if" || prev_kw == "elif");
+                    } else if (kw == "catch" || kw == "finally") {
+                        allowed = (prev_kw == "try" || prev_kw == "catch");
+                    }
+                    if (!allowed) {
+                        throw make_error(
+                            "unexpected keyword order: " + prev_kw + " before "
+                                + kw,
+                            inode
+                        );
+                    }
+                    result->pop_back();
+                    for (auto& ch : inode->nodes) {
+                        prev->append(ch, src);
+                    }
+                    result->append(prev, src);
+                    continue;
+                }
+            }
         }
         if (wait_for_condition && (!is_group || kind != group_kind::paren)) {
             throw make_error("expected condition after control keyword");
