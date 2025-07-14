@@ -31,16 +31,20 @@ class grouper {
 public:
     explicit grouper(reader& r, size_t limit = 64);
 
-    group_ptr parse_group(group_kind kind = group_kind::file);
+    group_ptr parse(group_kind kind = group_kind::file);
 
 private:
     reader& src;
     size_t limit;
+    token current;
+    bool reuse { false };
 
     [[nodiscard]] token peek() const;
+    [[nodiscard]] group_ptr identify(const group_ptr& group) const;
+    group_ptr parse_group(group_kind kind);
 
     [[nodiscard]] std::runtime_error make_error(
-        const std::string& message,
+        const std::string& message, const group_ptr& context = {},
         const std::source_location& location = std::source_location::current()
     ) const;
 };

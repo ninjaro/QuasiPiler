@@ -56,8 +56,9 @@ struct token {
 
     virtual ~token();
 
-    virtual void dump(std::ostream& os, const std::string& prefix, bool is_last)
-        const noexcept;
+    virtual void dump(
+        std::ostream& os, const std::string& prefix, bool is_last
+    ) const noexcept;
 
     void dump(std::ostream& os) const noexcept;
 };
@@ -76,7 +77,7 @@ public:
 
     void next_token(token& out);
 
-    void jump_to_position(position position);
+    void jump_to_position(position pos);
 
     void interrupt();
 
@@ -84,6 +85,7 @@ public:
 
 private:
     std::ifstream ifs;
+    std::string filename;
     std::string buffer;
     std::streamsize max_buffer_size {};
     std::streamoff file_offset {};

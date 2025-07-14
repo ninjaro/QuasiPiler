@@ -31,7 +31,7 @@ TEST(GrouperTest, ParsesSimpleBody) {
     reader r { input };
     grouper g { r };
 
-    auto res = g.parse_group();
+    auto res = g.parse();
     ASSERT_EQ(res->kind, group_kind::file);
     ASSERT_EQ(res->size(), 1u);
 
@@ -64,7 +64,7 @@ TEST(GrouperTest, ParsesNestedListBody) {
     reader r { input };
     grouper g { r };
 
-    auto res = g.parse_group();
+    auto res = g.parse();
     ASSERT_EQ(res->kind, group_kind::file);
     ASSERT_EQ(res->size(), 1u);
 
@@ -91,7 +91,7 @@ TEST(GrouperTest, MissingClosingThrows) {
     std::string input = "[a";
     reader r { input };
     grouper g { r };
-    EXPECT_THROW(g.parse_group(), std::runtime_error);
+    EXPECT_THROW(g.parse(), std::runtime_error);
 }
 
 TEST(GrouperTest, ConstructorEnforcesLimit) {
@@ -102,11 +102,11 @@ TEST(GrouperTest, ConstructorEnforcesLimit) {
 
 TEST(GrouperTest, LimitTooSmallThrows) {
     for (auto [str, lim] : std::vector<std::pair<std::string, size_t>> {
-             { "{a;[b,c,d];e}", 14 },
-             { "a,b,c,d,e,f", 12 },
-             { "{[a,a,a,a,a],[b,b,b,b]}", 24 } }) {
+             { "{a;[b,c,d];e}", 3 },
+             { "a,b,c,d,e,f", 6 },
+             { "{[a,a,a,a,a],[b,b,b,b]}", 5 } }) {
         reader r { str };
         grouper g { r, lim };
-        EXPECT_THROW(g.parse_group(), std::runtime_error);
+        EXPECT_THROW(g.parse(), std::runtime_error);
     }
 }

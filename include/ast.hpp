@@ -63,10 +63,12 @@ using token_node_ptr = std::shared_ptr<token_node>;
 
 enum class group_kind { file, body, list, paren, command, item, key, halt };
 
+[[nodiscard]] const char* group_kind_name(group_kind k) noexcept;
+
 struct placeholder_node : token_node {
     reader* src { nullptr };
     group_kind kind { group_kind::halt };
-
+    size_t limit {};
     void dump(
         std::ostream& os, const std::string& prefix, bool is_last, bool full
     ) const override;
@@ -81,16 +83,82 @@ struct group_node : ast_node {
     std::priority_queue<std::pair<size_t, size_t>>
         weights; /// node_size -> node_index
 
-    void append(ast_node_ptr node);
+    void append(ast_node_ptr node, const reader& src);
     [[nodiscard]] bool empty() const noexcept override;
     [[nodiscard]] size_t size() const noexcept;
     [[nodiscard]] ast_node const* get() const noexcept override;
     [[nodiscard]] ast_node const* first() const override;
     void dump(
         std::ostream& os, const std::string& prefix, bool is_last, bool full
-    ) const noexcept override;
-    void squeeze(size_t index);
+    ) const override;
+    void squeeze(size_t index, const reader& src);
 };
 
 using group_ptr = std::shared_ptr<group_node>;
+
+struct callexp_node : token_node {
+    ast_node_ptr paren;
+    bool has_paren { false };
+
+    explicit callexp_node(const token& name);
+    void set_paren(ast_node_ptr paren);
+
+    void dump(
+        std::ostream& os, const std::string& prefix, bool is_last, bool full
+    ) const override;
+};
+
+using callexp_ptr = std::shared_ptr<callexp_node>;
+
+struct fundecl_node : callexp_node {
+    ast_node_ptr body;
+    bool has_body { false };
+
+    explicit fundecl_node(const callexp_ptr& proto);
+    void set_body(ast_node_ptr body);
+
+    void dump(
+        std::ostream& os, const std::string& prefix, bool is_last, bool full
+    ) const override;
+};
+
+using fundecl_ptr = std::shared_ptr<fundecl_node>;
+
+struct control_node : token_node {
+    ast_node_ptr body;
+    bool has_body { false };
+
+    explicit control_node(const token& name);
+    void set_body(ast_node_ptr body);
+    void dump(
+        std::ostream& os, const std::string& prefix, bool is_last, bool full
+    ) const override;
+};
+
+using control_ptr = std::shared_ptr<control_node>;
+
+struct condition_node : control_node {
+    bool is_loop { false };
+    ast_node_ptr paren;
+    bool has_paren { false };
+
+    explicit condition_node(const token& name);
+    void set_paren(ast_node_ptr paren);
+
+    void dump(
+        std::ostream& os, const std::string& prefix, bool is_last, bool full
+    ) const override;
+};
+
+using condition_ptr = std::shared_ptr<condition_node>;
+
+struct jump_node : control_node {
+    explicit jump_node(const token& name);
+    void dump(
+        std::ostream& os, const std::string& prefix, bool is_last, bool full
+    ) const override;
+};
+
+using jump_ptr = std::shared_ptr<jump_node>;
+
 #endif // AST_HPP

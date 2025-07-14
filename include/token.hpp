@@ -69,8 +69,9 @@ struct token {
      * t.dump(std::cout);
      * @endcode
      */
-    virtual void dump(std::ostream& os, const std::string& prefix, bool is_last)
-        const noexcept;
+    virtual void dump(
+        std::ostream& os, const std::string& prefix, bool is_last
+    ) const noexcept;
 
     /// Convenience wrapper around dump(os, "", true)
     void dump(std::ostream& os) const noexcept;

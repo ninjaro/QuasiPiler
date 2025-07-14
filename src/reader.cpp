@@ -50,8 +50,9 @@ reader::reader(
 )
     : max_buffer_size(buffer_size) {
     ifs.open(path, std::ios::in | std::ios::binary);
+    filename = path.string();
     if (!ifs.is_open()) {
-        throw std::invalid_argument("cannot open file: " + path.string());
+        throw std::invalid_argument("cannot open file: " + filename);
     }
     ifs.seekg(0, std::ios::beg);
     file_offset = ifs.tellg();
@@ -103,6 +104,7 @@ void reader::reload_buffer() {
         return;
     }
     file_offset = ifs.tellg();
+    buffer.resize(static_cast<size_t>(max_buffer_size));
     ifs.read(&buffer[0], max_buffer_size);
     const auto got = ifs.gcount();
     buffer.resize(static_cast<size_t>(got));
@@ -302,6 +304,7 @@ std::runtime_error reader::make_error(
         oss << "no file open. ";
     }
     if (!is_valid()) {
+        oss << filename << " is open. ";
         oss << "position is out of range. line: " << (line + 1)
             << ", column: " << (column + 1) << " exceeds available input. ";
     } else {
@@ -372,21 +375,22 @@ void reader::next_token(token& out) {
     }
 }
 
-void reader::jump_to_position(const position position) {
-    if (position.offset < 0) {
+void reader::jump_to_position(const position pos) {
+    if (pos.offset < 0) {
         throw make_error("position is out of range");
     }
     if (!ifs.is_open()) {
-        buffer_position = static_cast<size_t>(position.offset);
+        buffer_position = static_cast<size_t>(pos.offset);
         if (buffer_position > buffer.size()) {
             throw make_error("position is out of range");
         }
     } else {
-        ifs.seekg(position.offset, std::ios::beg);
+        ifs.clear();
+        ifs.seekg(pos.offset, std::ios::beg);
         reload_buffer();
     }
-    this->line = position.line;
-    this->column = position.column;
+    this->line = pos.line;
+    this->column = pos.column;
 }
 
 void reader::interrupt() {

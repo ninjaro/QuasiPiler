@@ -25,7 +25,7 @@
 #include <cxxopts.hpp>
 #include <iostream>
 
-#include "reader.hpp"
+#include "grouper.hpp"
 
 int main(const int argc, char* argv[]) {
     std::filesystem::path path;
@@ -53,6 +53,8 @@ int main(const int argc, char* argv[]) {
     }
 
     reader r(path);
+    grouper g(r);
+    auto result = g.parse();
 
     return 0;
 }
