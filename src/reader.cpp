@@ -26,13 +26,33 @@
 
 #include <cassert>
 
+token::~token() = default;
+
+static const char* token_kind_name(const token_kind k) noexcept {
+    static constexpr const char* names[]
+        = { "eof",     "open_bracket", "close_bracket",    "separator",
+            "keyword", "string",       "comment",          "whitespace",
+            "integer", "floating",     "special_character" };
+    return names[static_cast<size_t>(k)];
+}
+
+void token::dump(
+    std::ostream& os, const std::string& prefix, const bool is_last
+) const noexcept {
+    os << prefix << (is_last ? "`-" : "|-") << "Token(" << token_kind_name(kind)
+       << ") <" << pos.line << ":" << pos.column << ">(\"" << word << "\")\n";
+}
+
+void token::dump(std::ostream& os) const noexcept { dump(os, "", true); }
+
 reader::reader(
     const std::filesystem::path& path, const std::streamsize buffer_size
 )
     : max_buffer_size(buffer_size) {
     ifs.open(path, std::ios::in | std::ios::binary);
+    filename = path.string();
     if (!ifs.is_open()) {
-        throw std::invalid_argument("cannot open file: " + path.string());
+        throw std::invalid_argument("cannot open file: " + filename);
     }
     ifs.seekg(0, std::ios::beg);
     file_offset = ifs.tellg();
@@ -84,6 +104,7 @@ void reader::reload_buffer() {
         return;
     }
     file_offset = ifs.tellg();
+    buffer.resize(static_cast<size_t>(max_buffer_size));
     ifs.read(&buffer[0], max_buffer_size);
     const auto got = ifs.gcount();
     buffer.resize(static_cast<size_t>(got));
@@ -270,9 +291,7 @@ token_kind reader::read_number(std::string& into) {
 
 void reader::init_token(token& t) const noexcept {
     t.word.clear();
-    t.line = line;
-    t.column = column;
-    t.file_offset = file_offset + static_cast<std::streamoff>(buffer_position);
+    t.pos = get_position();
 }
 
 std::runtime_error reader::make_error(
@@ -285,6 +304,7 @@ std::runtime_error reader::make_error(
         oss << "no file open. ";
     }
     if (!is_valid()) {
+        oss << filename << " is open. ";
         oss << "position is out of range. line: " << (line + 1)
             << ", column: " << (column + 1) << " exceeds available input. ";
     } else {
@@ -355,23 +375,22 @@ void reader::next_token(token& out) {
     }
 }
 
-void reader::jump_to_position(
-    const std::streamoff position, const int line, const int column
-) {
-    if (position < 0) {
+void reader::jump_to_position(const position pos) {
+    if (pos.offset < 0) {
         throw make_error("position is out of range");
     }
     if (!ifs.is_open()) {
-        buffer_position = static_cast<size_t>(position);
+        buffer_position = static_cast<size_t>(pos.offset);
         if (buffer_position > buffer.size()) {
             throw make_error("position is out of range");
         }
     } else {
-        ifs.seekg(position, std::ios::beg);
+        ifs.clear();
+        ifs.seekg(pos.offset, std::ios::beg);
         reload_buffer();
     }
-    this->line = line;
-    this->column = column;
+    this->line = pos.line;
+    this->column = pos.column;
 }
 
 void reader::interrupt() {
@@ -379,4 +398,9 @@ void reader::interrupt() {
         return;
     }
     throw make_error("interrupted");
+}
+
+position reader::get_position() const {
+    return { file_offset + static_cast<std::streamoff>(buffer_position), line,
+             column };
 }

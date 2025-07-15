@@ -25,11 +25,7 @@
 #include "grouper.hpp"
 #include <gtest/gtest.h>
 
-TEST(AstDump, ExampleAST) {
-    // std::ostringstream path_out;
-    // path_out << "test_data/sum.md";
-    // std::ofstream out(path_out.str());
-
+TEST(AstDump, ExamplePartAST) {
     for (int i = 0; i < 12; ++i) {
         try {
             std::stringstream idx;
@@ -37,19 +33,36 @@ TEST(AstDump, ExampleAST) {
             std::ostringstream path_in;
             path_in << "test_data/test" << idx.str() << ".qc";
             reader r(path_in.str());
-            grouper g { r };
-            auto res = g.parse_group();
-            // out << "<details><summary>test" << idx.str()
-            // << ".qc:</summary>\n\n ```\n";
-
+            grouper g { r, 512 };
+            auto res = g.parse();
             std::ostringstream path_out;
             path_out << "test_data/test" << idx.str() << ".dump";
             std::ofstream out(path_out.str());
-            res->dump(out, "", true, true);
-            // out << "```\n </details> \n\n";
+            res->dump(out, "", true, false);
         } catch (const std::runtime_error& e) {
-            std::cout << "Error processing test case " << i << ": " << e.what()
-                      << "\n\n";
+            std::cout << "Error processing test case " << i << ": \n"
+                      << e.what() << "\n\n";
+        }
+    }
+}
+
+TEST(AstDump, ExampleFullAST) {
+    for (int i = 0; i < 12; ++i) {
+        try {
+            std::stringstream idx;
+            idx << std::setfill('0') << std::setw(2) << i;
+            std::ostringstream path_in;
+            path_in << "test_data/test" << idx.str() << ".qc";
+            reader r(path_in.str());
+            grouper g { r, 512 };
+            auto res = g.parse();
+            std::ostringstream path_out;
+            path_out << "test_data/test" << idx.str() << ".full-dump";
+            std::ofstream out(path_out.str());
+            res->dump(out, "", true, true);
+        } catch (const std::runtime_error& e) {
+            std::cout << "Error processing test case " << i << ": \n"
+                      << e.what() << "\n\n";
         }
     }
 }

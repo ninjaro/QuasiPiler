@@ -25,22 +25,55 @@
 #ifndef GROUPER_HPP
 #define GROUPER_HPP
 
-#include "reader.hpp"
+#include "ast.hpp"
 
 class grouper {
 public:
     explicit grouper(reader& r, size_t limit = 64);
 
-    group_ptr parse_group(group_kind kind = group_kind::file);
+    group_ptr parse(group_kind kind = group_kind::file);
 
 private:
     reader& src;
     size_t limit;
+    token current;
+    position pos {};
+    bool reuse { false };
 
-    [[nodiscard]] token peek() const;
+    void peek();
+
+    [[nodiscard]] group_ptr identify_subgroup(const group_ptr& group) const;
+
+    [[nodiscard]] bool
+    handle_chain(const group_ptr& result, const group_ptr& inode) const;
+
+    bool append_group(
+        const group_ptr& result, const ast_node_ptr& node,
+        bool& wait_for_condition, bool& wait_for_body, group_kind kind
+    ) const;
+
+    void identify_body(const group_ptr& group) const;
+
+    void identify(const group_ptr& group, const group_ptr& result) const;
+
+    void parse_arithmetic(const group_ptr& group) const;
+
+    bool
+    append_command(group_ptr& group, group_ptr& top, group_kind kind) const;
+
+    void append_wrapped(const group_ptr& top);
+
+    void close_wrapped(const group_ptr& group, group_ptr& top, group_kind kind);
+
+    void parse_group(group_kind kind, group_ptr& group);
+
+    void append(
+        const group_ptr& parent, const ast_node_ptr& node,
+        const std::source_location& location = std::source_location::current()
+    ) const;
 
     [[nodiscard]] std::runtime_error make_error(
-        const std::string& message,
+        const std::string& message, const group_ptr& context = {},
         const std::source_location& location = std::source_location::current()
     ) const;
 };

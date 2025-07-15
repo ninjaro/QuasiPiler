@@ -36,5 +36,5 @@ jobs:
       - name: Clang-format
         uses: jidicula/clang-format-action@v4.13.0
         with:
-          clang-format-version: '18'
+          clang-format-version: '20'
           check-path: '.'

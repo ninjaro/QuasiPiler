@@ -22,39 +22,40 @@
  * SOFTWARE.
  */
 
-#include <cxxopts.hpp>
-#include <iostream>
+#ifndef EXPRESSION_HPP
+#define EXPRESSION_HPP
 
-#include "grouper.hpp"
+#include "ast.hpp"
+#include <unordered_map>
+#include <vector>
 
-int main(const int argc, char* argv[]) {
-    std::filesystem::path path;
-    try {
-        cxxopts::Options options(
-            "QuasiPiler", "the Hunchback Dragon of Compilers"
-        );
-        options
-            .add_options()("i,input", "Input file", cxxopts::value<std::filesystem::path>(path))(
-                "h,help", "show help"
-            );
-        options.parse_positional({ "input" });
-        if (const auto result = options.parse(argc, argv);
-            result.count("help")) {
-            std::cout << options.help() << "\n";
-            return 0;
-        }
-        if (path.empty() || !exists(path) || !is_regular_file(path)) {
-            std::cerr << "input file is required.\n";
-            return 1;
-        }
-    } catch (const cxxopts::exceptions::exception& e) {
-        std::cerr << "error parsing options: " << e.what() << "\n";
-        return 1;
-    }
+class expression {
+public:
+    struct item {
+        bool is_op { false };
+        token tok;
+        ast_node_ptr node;
+    };
 
-    reader r(path);
-    grouper g(r);
-    auto result = g.parse();
+    static std::vector<item> make_items(const std::vector<ast_node_ptr>& nodes);
 
-    return 0;
-}
+    static ast_node_ptr
+    parse_expression(std::vector<item>& items, size_t& idx, int min_prec);
+
+    static ast_node_ptr parse_prefix(std::vector<item>& items, size_t& idx);
+
+private:
+    static token make_token(const token_node& tn, const std::string& word);
+
+    static bool match_op(
+        const std::vector<ast_node_ptr>& nodes, size_t pos,
+        const std::string& op
+    );
+
+    static const std::unordered_map<std::string, std::pair<int, bool>>
+        binary_ops;
+    static const std::unordered_map<std::string, int> prefix_ops;
+    static const std::unordered_map<std::string, int> postfix_ops;
+};
+
+#endif // EXPRESSION_HPP

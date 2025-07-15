@@ -29,7 +29,41 @@
 #include <fstream>
 #include <source_location>
 
-#include "ast.hpp"
+struct position {
+    std::streamoff offset;
+    int line;
+    int column;
+};
+
+enum class token_kind {
+    eof,
+    open_bracket,
+    close_bracket,
+    separator,
+    keyword,
+    string,
+    comment,
+    whitespace,
+    integer,
+    floating,
+    special_character
+};
+
+struct token {
+    token_kind kind;
+    position pos;
+    std::string word;
+
+    virtual ~token();
+
+    virtual void dump(
+        std::ostream& os, const std::string& prefix, bool is_last
+    ) const noexcept;
+
+    void dump(std::ostream& os) const noexcept;
+};
+
+using token_ptr = std::shared_ptr<token>;
 
 class reader {
 public:
@@ -43,12 +77,15 @@ public:
 
     void next_token(token& out);
 
-    void jump_to_position(std::streamoff position, int line, int column);
+    void jump_to_position(position pos);
 
     void interrupt();
 
+    position get_position() const;
+
 private:
     std::ifstream ifs;
+    std::string filename;
     std::string buffer;
     std::streamsize max_buffer_size {};
     std::streamoff file_offset {};

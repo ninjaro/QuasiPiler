@@ -38,7 +38,12 @@ add_library(qpiler_lib
         src/reader.cpp
         src/ast.cpp
         src/grouper.cpp
+        src/expression.cpp
 )
+find_package(OpenMP)
+if (OpenMP_CXX_FOUND)
+    target_link_libraries(qpiler_lib PUBLIC OpenMP::OpenMP_CXX)
+endif()
 
 target_include_directories(qpiler_lib PUBLIC include)
 
@@ -46,6 +51,7 @@ target_precompile_headers(qpiler_lib PRIVATE
         include/reader.hpp
         include/ast.hpp
         include/grouper.hpp
+        include/expression.hpp
 )
 
 set_target_properties(qpiler_lib PROPERTIES UNITY_BUILD ON)
@@ -53,6 +59,9 @@ set_target_properties(qpiler_lib PROPERTIES UNITY_BUILD ON)
 add_executable(qpiler src/main.cpp)
 
 target_link_libraries(qpiler PRIVATE qpiler_lib)
+if (OpenMP_CXX_FOUND)
+    target_link_libraries(qpiler PRIVATE OpenMP::OpenMP_CXX)
+endif()
 
 option(BUILD_TESTS "Build unit tests" ON)
 option(COVERAGE "Enable coverage reporting" OFF)
@@ -66,18 +75,22 @@ if (BUILD_TESTS)
 
     add_executable(unit_tests
             tests/main.cpp
-
             tests/reader_tests.cpp
-            tests/ast_tests.cpp
             tests/grouper_tests.cpp
+            tests/identify_tests.cpp
+            tests/ast_tests.cpp
+            tests/arithmetic_tests.cpp
     )
 
-    target_link_libraries(unit_tests
+    target_link_libraries(unit_tests PRIVATE
             qpiler_lib
             GTest::GTest
             GTest::Main
             Threads::Threads
     )
+    if (OpenMP_CXX_FOUND)
+        target_link_libraries(unit_tests PRIVATE OpenMP::OpenMP_CXX)
+    endif()
 
     enable_testing()
     add_test(NAME unit_tests COMMAND unit_tests)
