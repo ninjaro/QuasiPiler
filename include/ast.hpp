@@ -169,4 +169,61 @@ struct jump_node : control_node {
 
 using jump_ptr = std::shared_ptr<jump_node>;
 
+struct unary_node : ast_node {
+    token op;
+    ast_node_ptr expr;
+    bool is_prefix { true };
+    int priority { 0 };
+
+    unary_node(
+        const token& op, ast_node_ptr expr, bool is_prefix, int priority
+    );
+
+    const position& get_start() const override;
+    void dump(
+        std::ostream& os, const std::string& prefix, bool is_last, bool full
+    ) const override;
+};
+
+using unary_ptr = std::shared_ptr<unary_node>;
+
+struct binary_node : ast_node {
+    token op;
+    ast_node_ptr lhs;
+    ast_node_ptr rhs;
+    int priority { 0 };
+
+    binary_node(
+        const token& op, ast_node_ptr lhs, ast_node_ptr rhs, int priority
+    );
+
+    const position& get_start() const override;
+    void dump(
+        std::ostream& os, const std::string& prefix, bool is_last, bool full
+    ) const override;
+};
+
+using binary_ptr = std::shared_ptr<binary_node>;
+
+struct ternary_node : ast_node {
+    token qmark;
+    token colon;
+    ast_node_ptr cond;
+    ast_node_ptr left;
+    ast_node_ptr right;
+    int priority { 0 };
+
+    ternary_node(
+        const token& qmark, const token& colon, ast_node_ptr cond,
+        ast_node_ptr left, ast_node_ptr right, int priority
+    );
+
+    const position& get_start() const override;
+    void dump(
+        std::ostream& os, const std::string& prefix, bool is_last, bool full
+    ) const override;
+};
+
+using ternary_ptr = std::shared_ptr<ternary_node>;
+
 #endif // AST_HPP

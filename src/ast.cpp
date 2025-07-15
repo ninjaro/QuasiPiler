@@ -331,3 +331,78 @@ void jump_node::dump(
 ) const {
     control_node::dump(os, prefix, is_last, full);
 }
+
+unary_node::unary_node(
+    const token& op, ast_node_ptr expr, bool is_prefix, int priority
+)
+    : op(op)
+    , expr(std::move(expr))
+    , is_prefix(is_prefix)
+    , priority(priority) {
+    fixed_size += this->expr->fixed_size;
+    full_size += this->expr->full_size;
+}
+
+const position& unary_node::get_start() const { return op.pos; }
+
+void unary_node::dump(
+    std::ostream& os, const std::string& prefix, bool is_last, bool full
+) const {
+    os << prefix << (is_last ? "`-" : "|-") << "Unary(" << op.word
+       << (is_prefix ? ", prefix" : ", postfix") << ", prio=" << priority
+       << ")\n";
+    const std::string child_prefix = prefix + (is_last ? "  " : "| ");
+    expr->dump(os, child_prefix, true, full);
+}
+
+binary_node::binary_node(
+    const token& op, ast_node_ptr lhs, ast_node_ptr rhs, int priority
+)
+    : op(op)
+    , lhs(std::move(lhs))
+    , rhs(std::move(rhs))
+    , priority(priority) {
+    fixed_size += this->lhs->fixed_size + this->rhs->fixed_size;
+    full_size += this->lhs->full_size + this->rhs->full_size;
+}
+
+const position& binary_node::get_start() const { return op.pos; }
+
+void binary_node::dump(
+    std::ostream& os, const std::string& prefix, bool is_last, bool full
+) const {
+    os << prefix << (is_last ? "`-" : "|-") << "Binary(" << op.word
+       << ", prio=" << priority << ")\n";
+    const std::string child_prefix = prefix + (is_last ? "  " : "| ");
+    lhs->dump(os, child_prefix, false, full);
+    rhs->dump(os, child_prefix, true, full);
+}
+
+ternary_node::ternary_node(
+    const token& qmark, const token& colon, ast_node_ptr cond,
+    ast_node_ptr left, ast_node_ptr right, int priority
+)
+    : qmark(qmark)
+    , colon(colon)
+    , cond(std::move(cond))
+    , left(std::move(left))
+    , right(std::move(right))
+    , priority(priority) {
+    fixed_size += this->cond->fixed_size + this->left->fixed_size
+        + this->right->fixed_size;
+    full_size += this->cond->full_size + this->left->full_size
+        + this->right->full_size;
+}
+
+const position& ternary_node::get_start() const { return qmark.pos; }
+
+void ternary_node::dump(
+    std::ostream& os, const std::string& prefix, bool is_last, bool full
+) const {
+    os << prefix << (is_last ? "`-" : "|-") << "Ternary(?:) prio=" << priority
+       << "\n";
+    const std::string child_prefix = prefix + (is_last ? "  " : "| ");
+    cond->dump(os, child_prefix, false, full);
+    left->dump(os, child_prefix, false, full);
+    right->dump(os, child_prefix, true, full);
+}

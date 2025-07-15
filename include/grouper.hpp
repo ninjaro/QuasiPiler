@@ -56,6 +56,8 @@ private:
 
     void identify(const group_ptr& group, const group_ptr& result) const;
 
+    void parse_arithmetic(const group_ptr& group) const;
+
     bool
     append_command(group_ptr& group, group_ptr& top, group_kind kind) const;
 

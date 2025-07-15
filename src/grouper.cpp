@@ -24,6 +24,8 @@
 
 #include "grouper.hpp"
 
+#include "expression.hpp"
+
 grouper::grouper(reader& r, const size_t limit)
     : src(r)
     , limit(limit) {
@@ -48,6 +50,7 @@ group_ptr grouper::parse(const group_kind kind) {
     result->kind = kind;
     parse_group(kind, group);
     identify(group, result);
+    parse_arithmetic(result);
     return result;
 }
 
@@ -113,6 +116,7 @@ group_ptr grouper::identify_subgroup(const group_ptr& group) const {
     inode->limit = limit;
     inode->kind = kind;
     identify(group, inode);
+    parse_arithmetic(inode);
     return inode;
 }
 
@@ -396,4 +400,74 @@ std::runtime_error grouper::make_error(
         oss << e.what();
     }
     return std::runtime_error(oss.str());
+}
+
+void grouper::parse_arithmetic(const group_ptr& group) const {
+    if (group->kind == group_kind::key && group->size() == 2) {
+        const auto left_g
+            = std::dynamic_pointer_cast<group_node>(group->nodes[0]);
+        const auto right_g
+            = std::dynamic_pointer_cast<group_node>(group->nodes[1]);
+        bool has_q = false;
+        if (left_g) {
+            for (auto& ch : left_g->nodes) {
+                if (const auto tn = std::dynamic_pointer_cast<token_node>(ch);
+                    tn && tn->value.word == "?") {
+                    has_q = true;
+                    break;
+                }
+            }
+        }
+        if (has_q) {
+            std::vector<ast_node_ptr> combined;
+            if (left_g) {
+                combined.insert(
+                    combined.end(), left_g->nodes.begin(), left_g->nodes.end()
+                );
+            } else {
+                combined.push_back(group->nodes[0]);
+            }
+            auto colon_tn = std::make_shared<token_node>();
+            colon_tn->value.kind = token_kind::separator;
+            colon_tn->value.word = ":";
+            colon_tn->value.pos = group->nodes[1]->get_start();
+            combined.push_back(colon_tn);
+            if (right_g) {
+                combined.insert(
+                    combined.end(), right_g->nodes.begin(), right_g->nodes.end()
+                );
+            } else {
+                combined.push_back(group->nodes[1]);
+            }
+            auto items = expression::make_items(combined);
+            size_t idx = 0;
+            auto expr = expression::parse_expression(items, idx, 0);
+            if (idx == items.size()) {
+                group->nodes.clear();
+                group->weights = {};
+                group->fixed_size = 1;
+                group->full_size = 1;
+                group->append(expr, src);
+            }
+            return;
+        }
+    }
+
+    if (group->kind == group_kind::command || group->kind == group_kind::item
+        || group->kind == group_kind::paren
+        || group->kind == group_kind::halt) {
+        if (group->nodes.empty()) {
+            return;
+        }
+        auto items = expression::make_items(group->nodes);
+        size_t idx = 0;
+        auto expr = expression::parse_expression(items, idx, 0);
+        if (idx == items.size()) {
+            group->nodes.clear();
+            group->weights = {};
+            group->fixed_size = 1;
+            group->full_size = 1;
+            append(group, expr);
+        }
+    }
 }

@@ -38,6 +38,7 @@ add_library(qpiler_lib
         src/reader.cpp
         src/ast.cpp
         src/grouper.cpp
+        src/expression.cpp
 )
 find_package(OpenMP)
 if (OpenMP_CXX_FOUND)
@@ -50,6 +51,7 @@ target_precompile_headers(qpiler_lib PRIVATE
         include/reader.hpp
         include/ast.hpp
         include/grouper.hpp
+        include/expression.hpp
 )
 
 set_target_properties(qpiler_lib PROPERTIES UNITY_BUILD ON)
@@ -77,6 +79,7 @@ if (BUILD_TESTS)
             tests/grouper_tests.cpp
             tests/identify_tests.cpp
             tests/ast_tests.cpp
+            tests/arithmetic_tests.cpp
     )
 
     target_link_libraries(unit_tests PRIVATE
