@@ -26,12 +26,12 @@
 #include <gtest/gtest.h>
 
 TEST(ArithmeticTest, ParseBinary) {
-    std::string input = "a+b;";
+    std::string input = "a+b";
     reader r { input };
     grouper g { r };
     auto res = g.parse();
     ASSERT_EQ(res->kind, group_kind::file);
-    ASSERT_GE(res->size(), 1u);
+    ASSERT_EQ(res->size(), 1u);
     auto* cmd = dynamic_cast<group_node*>(res->nodes[0].get());
     ASSERT_NE(cmd, nullptr);
     auto* bin = dynamic_cast<binary_node*>(cmd->nodes[0].get());
@@ -40,12 +40,12 @@ TEST(ArithmeticTest, ParseBinary) {
 }
 
 TEST(ArithmeticTest, ParsePrefixUnary) {
-    std::string input = "+a;";
+    std::string input = "+a";
     reader r { input };
     grouper g { r };
     auto res = g.parse();
     ASSERT_EQ(res->kind, group_kind::file);
-    ASSERT_GE(res->size(), 1u);
+    ASSERT_EQ(res->size(), 1u);
     auto* cmd = dynamic_cast<group_node*>(res->nodes[0].get());
     ASSERT_NE(cmd, nullptr);
     auto* un = dynamic_cast<unary_node*>(cmd->nodes[0].get());
@@ -54,12 +54,12 @@ TEST(ArithmeticTest, ParsePrefixUnary) {
 }
 
 TEST(ArithmeticTest, ParsePostfixUnary) {
-    std::string input = "a++;";
+    std::string input = "a++";
     reader r { input };
     grouper g { r };
     auto res = g.parse();
     ASSERT_EQ(res->kind, group_kind::file);
-    ASSERT_GE(res->size(), 1u);
+    ASSERT_EQ(res->size(), 1u);
     auto* cmd = dynamic_cast<group_node*>(res->nodes[0].get());
     ASSERT_NE(cmd, nullptr);
     auto* un = dynamic_cast<unary_node*>(cmd->nodes[0].get());
@@ -68,12 +68,12 @@ TEST(ArithmeticTest, ParsePostfixUnary) {
 }
 
 TEST(ArithmeticTest, ParseNestedGroups) {
-    std::string input = "++(a--);";
+    std::string input = "++(a--)";
     reader r { input };
     grouper g { r };
     auto res = g.parse();
     ASSERT_EQ(res->kind, group_kind::file);
-    ASSERT_GE(res->size(), 1u);
+    ASSERT_EQ(res->size(), 1u);
     auto* cmd = dynamic_cast<group_node*>(res->nodes[0].get());
     ASSERT_NE(cmd, nullptr);
     auto* pre = dynamic_cast<unary_node*>(cmd->nodes[0].get());

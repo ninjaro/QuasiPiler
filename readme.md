@@ -2,11 +2,12 @@
 ## _— the Hunchback Dragon of Compilers_
 
 
-[//]: # ([![version]&#40;https://img.shields.io/github/v/release/YaRiabtsev/QuasiPiler?include_prereleases&#41;]&#40;https://github.com/YaRiabtsev/QuasiPiler/releases/latest&#41;)
-[//]: # ([![Checks]&#40;https://github.com/YaRiabtsev/QuasiPiler/actions/workflows/tests.yml/badge.svg&#41;]&#40;https://github.com/YaRiabtsev/QuasiPiler/actions/workflows/tests.yml&#41;)
-[//]: # ([![Docs & Coverage]&#40;https://github.com/YaRiabtsev/QuasiPiler/actions/workflows/html.yml/badge.svg&#41;]&#40;https://github.com/YaRiabtsev/QuasiPiler/actions/workflows/html.yml&#41;)
-[![codecov](https://codecov.io/gh/YaRiabtsev/QuasiPiler/graph/badge.svg?token=MCNEJFWMDU)](https://codecov.io/gh/YaRiabtsev/QuasiPiler)
-[![license](https://img.shields.io/github/license/YaRiabtsev/QuasiPiler?color=e6e6e6)](https://github.com/YaRiabtsev/QuasiPiler/blob/master/license)
+[![version](https://img.shields.io/github/v/release/ninjaro/QuasiPiler?include_prereleases)](https://github.com/ninjaro/QuasiPiler/releases/latest)
+[![Checks](https://github.com/ninjaro/QuasiPiler/actions/workflows/tests.yml/badge.svg)](https://github.com/ninjaro/QuasiPiler/actions/workflows/tests.yml)
+[![Deploy](https://github.com/ninjaro/QuasiPiler/actions/workflows/html.yml/badge.svg)](https://github.com/ninjaro/QuasiPiler/actions/workflows/html.yml)
+[![codecov](https://codecov.io/gh/ninjaro/QuasiPiler/graph/badge.svg?token=MCNEJFWMDU)](https://codecov.io/gh/ninjaro/QuasiPiler)
+[![Codacy Badge](https://app.codacy.com/project/badge/Grade/940dcf5e3cf64e759ce6ad17176d31f4)](https://app.codacy.com/gh/ninjaro/QuasiPiler/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_grade)
+[![license](https://img.shields.io/github/license/ninjaro/QuasiPiler?color=e6e6e6)](https://github.com/ninjaro/QuasiPiler/blob/master/license)
 
 > “A one-eyed transpiler is much more incomplete than a blind transpiler, for he knows what it is that’s lacking.”  
 > — Victor-Marie of Gugle Inc. (1998–2017)
@@ -37,72 +38,170 @@ This repo is my sanctuary under license — it begs mercy, not stars. I’ll bel
     ```
    * `<inputfile>`: path to your QuasiCode file
 
-## QuasiLang Syntax
+## QuasiLang Syntax Guide
 
 ### Basics
 
-- **Comments**
-   - Line comments begin with `//`.
-   - Block comments are enclosed in `/*` and `*/`.
-- **Whitespace** is ignored except as a separator.
-- **Identifiers** use letters, digits and underscores and may not start with a digit.
-- **Literals**
-   - Numbers support integer and floating point forms (with optional exponent).
-   - Strings can use either single `'` or double `"` quotes and support common escape sequences.
+* **Comments**
 
-[//]: # (- **Separators and grouping**)
+    * Line comments: `// This is a comment`
+    * Block comments:
 
-[//]: # (   - `,` comma, `;` semicolon and `:` colon act as separators.)
+      ```qc
+      /* 
+        This is a block comment
+      */
+      ```
 
-[//]: # (   - `&#40;&#41;` parentheses, `[]` brackets and `{}` braces form groups.)
+* **Whitespace** is ignored except as a separator.
 
-[//]: # (   - Nested groups are used for lists, code blocks and expressions.)
+* **Identifiers** consist of letters, digits, and underscores, but cannot start with a digit.
 
-[//]: # ()
-[//]: # (### Expressions)
+* **Literals**
 
-[//]: # ()
-[//]: # (- Standard arithmetic and assignment operators are recognized: `+`, `-`, `*`, `/`, `%`, `=` and their compound forms &#40;`+=`, `-=`, `*=`, `/=`, `%=`&#41;.)
+    * **Numbers:** Support integer and floating-point (with optional exponent).
+    * **Strings:** Can use single `'` or double `"` quotes. Common escape sequences (like `\n`, `\t`, `\\`, etc.) are supported.
 
-[//]: # (- Comparison and logical operators include `==`, `!=`, `<`, `<=`, `>`, `>=`, `&&`, `||`, `!`.)
+* **Separators and Grouping**
 
-[//]: # (- Bitwise operators: `&`, `|`, `^`, `<<`, `>>` and their compound assignments.)
+    * Separators: `,` (comma), `;` (semicolon), `:` (colon)
+    * Grouping:
 
-[//]: # (- Increment and decrement operators `++` and `--` are supported in prefix and postfix form.)
+        * `()` for expressions and function parameters
+        * `[]` for lists and indexing
+        * `{}` for code blocks and objects
 
-[//]: # (- Member access uses `.` and indexing uses `[expr]`. Slice syntax `[start:end:step]` is available.)
+---
 
-[//]: # (- Function calls use the form `name&#40;arg1, arg2&#41;`.)
+### Expressions
+
+* **Arithmetic & Assignment:**
+  `+`, `-`, `*`, `/`, `%`, `=`, `+=`, `-=`, `*=`, `/=`, `%=`
+* **Comparison & Logic:**
+  `==`, `!=`, `<`, `<=`, `>`, `>=`, `&&`, `||`, `!`
+* **Bitwise:**
+  `&`, `|`, `^`, `<<`, `>>`, and compound assignments (`&=`, `|=`, etc.)
+* **Increment/Decrement:**
+  `++`, `--` (prefix and postfix)
+* **Member Access:**
+  `obj.key` or `obj["key"]`
+* **Indexing & Slicing:**
+  `arr[2]`, `arr[1:4]`, `arr[::2]`
+* **Function Calls:**
+  `func(arg1, arg2)`
+
+---
 
 ### Statements and Declarations
 
-[//]: # (- **Variable assignment** follows `name = expression;`.)
+* **Variable Assignment:**
+  `name = expression;`
+* **Function Declaration:**
+  `name(param1, param2) { ... }`
+* **Control Flow:**
 
-[//]: # (- **Function declarations** use `name&#40;param1, param2&#41; { ... }`.)
+    * **Conditional:**
 
-[//]: # (- **Control flow**)
+      ```qc
+      if (cond) { ... }
+      elif (other) { ... }
+      else { ... }
+      ```
+    * **Loops:**
 
-[//]: # (   - Conditional statements: `if &#40;cond&#41; { ... }`, optional `else` or `elif` blocks.)
+        * While: `while (cond) { ... }`
+        * For: `for (init; cond; step) { ... }`
+    * **Jump Statements:**
 
-[//]: # (   - Loops: `while &#40;cond&#41; { ... }` and `for&#40;init; cond; step&#41; { ... }`.)
+        * `break;`
+        * `continue;`
+        * `return;` or `return expr;`
+        * `goto label_name;`
+    * **Exception Handling:**
 
-[//]: # (   - `break`, `continue`, `return` and `goto` appear as standalone keywords and may take an optional expression for `return`.)
+      ```qc
+      try {
+          // code
+      } catch (err) {
+          // handler
+      } finally {
+          // cleanup
+      }
+      ```
+* **Labels:**
+  Define with `label_name:` and use with `goto label_name;`
 
-[//]: # (   - `try { ... } catch { ... }` for exception handling.)
-
-[//]: # (- **Labels** can be defined with `label_name:` and referenced via `goto label_name`.)
+---
 
 ### Data Structures
 
-[//]: # (- **Lists** use `[item1, item2, ...]`.)
+* **Lists:**
+  `[item1, item2, ...]`
+* **Dictionaries/Objects:**
+  `{ "key": value, "other": 42 }`
 
-[//]: # (- **Dictionaries/objects** use `{ "key": value }`.)
+---
 
-## Examples
+### Example Programs
+
+**Hello World**
 
 ```qc
-// todo: Example of a simple QuasiLang program
+// hello.qc
+greeting = "Hello, world!";
+print(greeting);
 ```
+
+**Basic Control Flow**
+
+```qc
+numbers = [1, 2, 3, 4, 5];
+sum = 0;
+
+for(i = 0; i < len(numbers); i++) {
+    sum += numbers[i];
+}
+
+if (sum > 15) {
+    print("Sum is greater than 15");
+} elif (sum > 10) {
+    print("Sum is greater than 10");
+} else {
+    print("Sum is", sum);
+}
+```
+
+**Functions and Error Handling**
+
+```qc
+safe_div(a, b) {
+    try {
+        return a / b;
+    } catch (...) {
+        print("Error: Division by zero");
+        return null;
+    }
+}
+
+result = safe_div(10, 0);
+```
+
+**Labels and Goto (Rare, but Supported)**
+
+```qc
+counter = 0;
+start:
+    counter++;
+    if (counter < 3) {
+        goto start;
+    }
+print("Done!");
+```
+
+---
+
+**See `include/frontend` and `src/frontend` for implementation, and check `tests/frontend` for more examples.**
+
 
 ## Documentation and Contributing
 
@@ -117,8 +216,8 @@ To build and run tests, enable debug mode, or generate coverage reports:
    $ cmake --build build --target coverage
    ```
 
-For detailed documentation, see the [Documentation](https://yariabtsev.github.io/QuasiPiler/doc/) and for the latest
-coverage report, see [Coverage](https://yariabtsev.github.io/QuasiPiler/cov/).
+For detailed documentation, see the [Documentation](https://ninjaro.github.io/QuasiPiler/doc/) and for the latest
+coverage report, see [Coverage](https://ninjaro.github.io/QuasiPiler/cov/).
 
 ## Security Policy
 
