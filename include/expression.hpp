@@ -31,17 +31,40 @@
 
 class expression {
 public:
+    /**
+     * @brief Element of the input stream for the expression parser.
+     * @details When @c is_op is set the item represents an operator token;
+     *          otherwise it stores a pointer to an AST node.
+     */
     struct item {
         bool is_op { false };
         token tok;
         ast_node_ptr node;
     };
 
+    /**
+     * @brief Split a raw node list into tokens and operands.
+     *
+     * Consecutive operator tokens are combined into multi-character operators
+     * such as <tt>+=</tt> or <tt>==</tt>.
+     */
     static std::vector<item> make_items(const std::vector<ast_node_ptr>& nodes);
-
+    /**
+     * @brief Parse a binary/ternary expression from a token list.
+     *
+     * The function implements a Pratt style parser. @p min_prec
+     * specifies the minimal operator precedence accepted for the
+     * current recursion level.
+     *
+     * @param items  Token/operand stream produced by make_items().
+     * @param idx    Current position within @p items, updated on return.
+     * @param min_prec Minimal precedence level to parse.
+     */
     static ast_node_ptr
     parse_expression(std::vector<item>& items, size_t& idx, int min_prec);
-
+    /**
+     * @brief Parse a prefix expression and any trailing postfix operators.
+     */
     static ast_node_ptr parse_prefix(std::vector<item>& items, size_t& idx);
 
 private:

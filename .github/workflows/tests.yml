@@ -4,6 +4,10 @@ on:
   pull_request:
     branches:
       - master
+    paths:
+      - 'src/**/*.cpp'
+      - 'include/**/*.hpp'
+      - 'tests/**/*.cpp'
 
 jobs:
   build-and-test:

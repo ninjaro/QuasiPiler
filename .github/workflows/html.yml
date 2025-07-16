@@ -1,9 +1,14 @@
-name: Docs & Coverage
+name: Deploy
 
 on:
   push:
     branches:
       - master
+    paths:
+      - 'src/**/*.cpp'
+      - 'include/**/*.hpp'
+      - 'tests/**/*.cpp'
+      - 'readme.md'
 
   workflow_dispatch:
 
@@ -47,6 +52,12 @@ jobs:
           name: codecov-umbrella
           token: ${{ secrets.CODECOV_TOKEN }}
           verbose: true
+
+      - name: Upload coverage to Codacy
+        uses: codacy/codacy-coverage-reporter-action@a38818475bb21847788496e9f0fddaa4e84955ba
+        with:
+          project-token: ${{ secrets.CODACY_PROJECT_TOKEN }}
+          coverage-reports: build/coverage.info
 
       - name: Clean build
         run: rm -rf build/

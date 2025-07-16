@@ -29,10 +29,13 @@
 #include <fstream>
 #include <source_location>
 
+/**
+ * @brief Byte and line location within the input stream.
+ */
 struct position {
-    std::streamoff offset;
-    int line;
-    int column;
+    std::streamoff offset; ///< absolute offset from the beginning of the file
+    int line; ///< zero based line number
+    int column; ///< zero based column number
 };
 
 enum class token_kind {
@@ -49,14 +52,14 @@ enum class token_kind {
     special_character
 };
 
-struct token {
+struct token final {
     token_kind kind;
     position pos;
     std::string word;
 
-    virtual ~token();
+    ~token();
 
-    virtual void dump(
+    void dump(
         std::ostream& os, const std::string& prefix, bool is_last
     ) const noexcept;
 
@@ -65,6 +68,13 @@ struct token {
 
 using token_ptr = std::shared_ptr<token>;
 
+/**
+ * @brief Lightweight tokenizer for QuasiLang source code.
+ *
+ * The reader reads from either a file or a memory buffer and produces
+ * tokens on demand via next_token(). Position information is tracked so
+ * callers can report meaningful diagnostics.
+ */
 class reader {
 public:
     explicit reader(
@@ -74,11 +84,19 @@ public:
     explicit reader(std::string& data) noexcept;
 
     ~reader();
-
+    /**
+     * @brief Read the next token from the input stream.
+     *
+     * @param out Token object to be filled with the parsed data.
+     */
     void next_token(token& out);
 
     void jump_to_position(position pos);
-
+    /**
+     * @brief Throw an exception with the current position information.
+     *
+     * Used by parsers to abort processing while preserving diagnostics.
+     */
     void interrupt();
 
     position get_position() const;
@@ -108,15 +126,33 @@ private:
     void read_whitespace(std::string& into);
 
     void read_keyword(std::string& into);
-
+    /**
+     * @brief Read a quoted string literal with escape handling.
+     *
+     * Supports common escape sequences and Unicode escapes of the
+     * form <tt>\uXXXX</tt>. The resulting decoded text is stored in
+     * @p into without the surrounding quotes.
+     * @throw std::runtime_error on malformed input.
+     */
     void read_string(std::string& into);
 
     void read_comment(std::string& into);
-
+    /**
+     * @brief Parse an integer or floating point literal.
+     *
+     * Digits are consumed according to the QuasiLang grammar. If a
+     * fractional part or exponent is present the returned kind is
+     * token_kind::floating.
+     */
     token_kind read_number(std::string& into);
 
     void init_token(token& t) const noexcept;
-
+    /**
+     * @brief Helper to create formatted runtime errors.
+     *
+     * In debug builds the message includes context information such
+     * as the current position and originating source location.
+     */
     [[nodiscard]] std::runtime_error make_error(
         const std::string& message,
         const std::source_location& location = std::source_location::current()

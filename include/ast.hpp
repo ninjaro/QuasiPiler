@@ -66,13 +66,30 @@ enum class group_kind { file, body, list, paren, command, item, key, halt };
 
 [[nodiscard]] const char* group_kind_name(group_kind k) noexcept;
 
+/**
+ * @brief Collection of AST nodes with a configurable size limit.
+ *
+ * Large sub-groups may be replaced with placeholder nodes to keep
+ * @c fixed_size within @c limit.
+ */
 struct group_node : ast_node {
-    size_t limit;
+    size_t limit; ///< Maximum allowed node weight
     group_kind kind { group_kind::halt };
     std::vector<ast_node_ptr> nodes;
-    std::priority_queue<std::pair<size_t, size_t>>
-        weights; /// node_size -> node_index
+    /// queue of heavy child nodes: <node_size, node_index>
+    std::priority_queue<std::pair<size_t, size_t>> weights;
 
+    /**
+     * @brief Append a child node while respecting the size limit.
+     *
+     * Nodes contribute their @c fixed_size and @c full_size to the parent. If
+     * the accumulated @c fixed_size exceeds @c limit, larger child groups are
+     * replaced with ::placeholder_node instances so the tree can be lazily
+     * expanded later.
+     *
+     * @param node Node to append.
+     * @param src  Reader used to reconstruct squeezed subtrees on demand.
+     */
     void append(ast_node_ptr node, const reader& src);
     [[nodiscard]] bool empty() const noexcept override;
     [[nodiscard]] size_t size() const noexcept;
@@ -81,7 +98,17 @@ struct group_node : ast_node {
     void dump(
         std::ostream& os, const std::string& prefix, bool is_last, bool full
     ) const override;
-    const position& get_start() const override;
+    [[nodiscard]] const position& get_start() const override;
+    /**
+     * @brief Replace a child group with a placeholder.
+     *
+     * The placeholder stores enough information to re-read the original subtree
+     * from @p src later. This is used when a group's @c fixed_size would exceed
+     * the configured limit and thus needs to be collapsed.
+     *
+     * @param index Index of the child to replace.
+     * @param src   Reader used to recreate the subtree if needed.
+     */
     void squeeze(size_t index, const reader& src);
     void pop_back();
 };
@@ -95,7 +122,14 @@ struct wrapped_node : group_node {
 
 using wrapped_ptr = std::shared_ptr<wrapped_node>;
 
-struct placeholder_node : wrapped_node {
+/**
+ * @brief Node standing in place of a squeezed sub-tree.
+ *
+ * When a group exceeds the configured size limit it can be replaced by a
+ * placeholder node. The original reader is stored so the subtree can be
+ * reconstructed on demand.
+ */
+struct placeholder_node final : wrapped_node {
     reader* src { nullptr };
     void dump(
         std::ostream& os, const std::string& prefix, bool is_last, bool full
