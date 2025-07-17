@@ -26,14 +26,15 @@
 #include <gtest/gtest.h>
 
 TEST(AstDump, ExamplePartAST) {
-    for (int i = 0; i < 12; ++i) {
+    for (int i = 0; i < 13; ++i) {
         try {
             std::stringstream idx;
             idx << std::setfill('0') << std::setw(2) << i;
             std::ostringstream path_in;
             path_in << "test_data/test" << idx.str() << ".qc";
             reader r(path_in.str());
-            grouper g { r, 512 };
+            size_t extra = (i == 12 ? 2 : 1);
+            grouper g { r, 64 * extra };
             auto res = g.parse();
             std::ostringstream path_out;
             path_out << "test_data/test" << idx.str() << ".dump";
@@ -47,14 +48,15 @@ TEST(AstDump, ExamplePartAST) {
 }
 
 TEST(AstDump, ExampleFullAST) {
-    for (int i = 0; i < 12; ++i) {
+    for (int i = 0; i < 13; ++i) {
         try {
             std::stringstream idx;
             idx << std::setfill('0') << std::setw(2) << i;
             std::ostringstream path_in;
             path_in << "test_data/test" << idx.str() << ".qc";
             reader r(path_in.str());
-            grouper g { r, 512 };
+            size_t extra = (i == 12 ? 2 : 1);
+            grouper g { r, 64 * extra };
             auto res = g.parse();
             std::ostringstream path_out;
             path_out << "test_data/test" << idx.str() << ".full-dump";

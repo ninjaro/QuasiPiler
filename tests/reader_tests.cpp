@@ -180,3 +180,48 @@ TEST(ReaderTest, CommentToken) {
     r.next_token(t);
     EXPECT_EQ(t.kind, token_kind::eof);
 }
+
+TEST(ReaderTest, FileOpenFailure) {
+    EXPECT_THROW(reader r { "nonexistent_file.qc" }, std::invalid_argument);
+}
+
+TEST(ReaderTest, TokenDump) {
+    token t;
+    t.kind = token_kind::integer;
+    t.pos.line = 1;
+    t.pos.column = 2;
+    t.word = "42";
+    std::ostringstream oss1;
+    std::ostringstream oss2;
+    t.dump(oss1);
+    t.dump(oss2, "", true);
+    EXPECT_EQ(oss1.str(), oss2.str());
+}
+
+TEST(ReaderTest, MissingClosingComment) {
+    std::string str = "/* unclosed";
+    reader r { str };
+    token t;
+    EXPECT_THROW(r.next_token(t), std::runtime_error);
+}
+
+TEST(ReaderTest, InvalidUnicodeEscape) {
+    std::string str = "\"\\u00g0\"";
+    reader r { str };
+    token t;
+    EXPECT_THROW(r.next_token(t), std::runtime_error);
+}
+
+TEST(ReaderTest, InvalidEscapeSequence) {
+    std::string str = "\"\\q\"";
+    reader r { str };
+    token t;
+    EXPECT_THROW(r.next_token(t), std::runtime_error);
+}
+
+TEST(ReaderTest, MissingClosingQuote) {
+    std::string str = "\"no end";
+    reader r { str };
+    token t;
+    EXPECT_THROW(r.next_token(t), std::runtime_error);
+}

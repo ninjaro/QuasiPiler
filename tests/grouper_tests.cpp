@@ -22,8 +22,9 @@
  * SOFTWARE.
  */
 
-#include "grouper.hpp"
 #include <gtest/gtest.h>
+
+#include "grouper.hpp"
 
 TEST(GrouperTest, ParsesSimpleBody) {
     std::string input = "{a;b}";
@@ -115,4 +116,56 @@ TEST(GrouperTest, LimitTooSmallThrows) {
             EXPECT_NO_THROW(g.parse());
         }
     }
+}
+
+TEST(GrouperChainTest, ErrorScenarios) {
+    struct Case {
+        std::string input;
+        std::string msg;
+    } cases[] = {
+        { "else a", "orphan secondary keyword" },
+        { "a,else b", "invalid predecessor for keyword" },
+        { "a;else b", "invalid predecessor for keyword" },
+        { "try{b};else{c}", "unexpected keyword order" },
+    };
+
+    for (const auto& c : cases) {
+        reader r { const_cast<std::string&>(c.input) };
+        grouper g { r };
+        try {
+            g.parse();
+            FAIL() << "no exception";
+        } catch (const std::runtime_error& e) {
+            EXPECT_NE(std::string(e.what()).find(c.msg), std::string::npos)
+                << c.input;
+        }
+    }
+}
+
+TEST(GrouperIdentifyTest, MissingCondition) {
+    std::string input = "if{a}";
+    reader r { input };
+    grouper g { r };
+    EXPECT_THROW({ g.parse(); }, std::runtime_error);
+}
+
+TEST(GrouperPlaceholderTest, PreservesPlaceholders) {
+    std::string input = "{[a,b,c,d],[e,f,g,h],[i,j,k,l]}";
+    reader r { input };
+    grouper g { r, 4 };
+
+    auto res = g.parse();
+    auto* halt = dynamic_cast<group_node*>(res->nodes[0].get());
+    ASSERT_NE(halt, nullptr);
+    auto* body = dynamic_cast<group_node*>(halt->nodes[0].get());
+    ASSERT_NE(body, nullptr);
+
+    bool has_placeholder = false;
+    for (const auto& ch : body->nodes) {
+        if (std::dynamic_pointer_cast<placeholder_node>(ch)) {
+            has_placeholder = true;
+            break;
+        }
+    }
+    EXPECT_TRUE(has_placeholder);
 }
