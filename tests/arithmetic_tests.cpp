@@ -27,6 +27,8 @@
 
 #include <gtest/gtest.h>
 
+#include <utility>
+
 TEST(ArithmeticTest, ParseBinary) {
     std::string input = "a+b";
     reader r { input };
@@ -94,9 +96,9 @@ TEST(ArithmeticTest, ParseNestedGroups) {
 
 TEST(ExpressionTest, TernaryBranches) {
     std::vector<ast_node_ptr> nodes;
-    auto make_tok = [&](std::string w, token_kind k) {
+    auto make_tok = [&](std::string w, const token_kind k) {
         auto t = std::make_shared<token_node>();
-        t->value.word = w;
+        t->value.word = std::move(w);
         t->value.kind = k;
         return t;
     };
