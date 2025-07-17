@@ -24,6 +24,8 @@
 
 #include "expression.hpp"
 
+#include <array>
+#include <string_view>
 #include <unordered_map>
 
 const std::unordered_map<std::string, std::pair<int, bool>>
@@ -50,25 +52,25 @@ const std::unordered_map<std::string, int> expression::prefix_ops
 const std::unordered_map<std::string, int> expression::postfix_ops
     = { { "++", 14 }, { "--", 14 } };
 
-token expression::make_token(const token_node& tn, const std::string& word) {
+token expression::make_token(const token_node& tn, std::string_view word) {
     token t = tn.value;
     t.word = word;
     return t;
 }
 
 bool expression::match_op(
-    const std::vector<ast_node_ptr>& nodes, const size_t pos,
-    const std::string& op
+    const std::vector<ast_node_ptr>& nodes, size_t pos, std::string_view op
 ) {
     if (pos + op.size() > nodes.size()) {
         return false;
     }
-    for (size_t i = 0; i < op.size(); ++i) {
-        if (const auto tn
-            = std::dynamic_pointer_cast<token_node>(nodes[pos + i]);
-            !tn || tn->value.word != std::string(1, op[i])) {
+    size_t i = 0;
+    for (char c : op) {
+        const auto tn = std::dynamic_pointer_cast<token_node>(nodes[pos + i]);
+        if (!tn || tn->value.word != std::string(1, c)) {
             return false;
         }
+        ++i;
     }
     return true;
 }
@@ -80,71 +82,23 @@ expression::make_items(const std::vector<ast_node_ptr>& nodes) {
         if (auto tn = std::dynamic_pointer_cast<token_node>(nodes[i])) {
             if (tn->value.kind == token_kind::special_character
                 || tn->value.kind == token_kind::separator) {
-                token tok;
+                static constexpr std::array<std::string_view, 20> multi_ops {
+                    "<<=", ">>=", "++", "--", "+=", "-=", "*=",
+                    "/=",  "%=",  "^=", "|=", "&=", "==", "!=",
+                    "<=",  ">=",  "<<", ">>", "&&", "||"
+                };
+
+                std::string_view op = tn->value.word;
                 size_t len = 1;
-                std::string op = tn->value.word;
-                if (match_op(nodes, i, "<<=")) {
-                    op = "<<=";
-                    len = 3;
-                } else if (match_op(nodes, i, ">>=")) {
-                    op = ">>=";
-                    len = 3;
-                } else if (match_op(nodes, i, "++")) {
-                    op = "++";
-                    len = 2;
-                } else if (match_op(nodes, i, "--")) {
-                    op = "--";
-                    len = 2;
-                } else if (match_op(nodes, i, "+=")) {
-                    op = "+=";
-                    len = 2;
-                } else if (match_op(nodes, i, "-=")) {
-                    op = "-=";
-                    len = 2;
-                } else if (match_op(nodes, i, "*=")) {
-                    op = "*=";
-                    len = 2;
-                } else if (match_op(nodes, i, "/=")) {
-                    op = "/=";
-                    len = 2;
-                } else if (match_op(nodes, i, "%=")) {
-                    op = "%=";
-                    len = 2;
-                } else if (match_op(nodes, i, "^=")) {
-                    op = "^=";
-                    len = 2;
-                } else if (match_op(nodes, i, "|=")) {
-                    op = "|=";
-                    len = 2;
-                } else if (match_op(nodes, i, "&=")) {
-                    op = "&=";
-                    len = 2;
-                } else if (match_op(nodes, i, "==")) {
-                    op = "==";
-                    len = 2;
-                } else if (match_op(nodes, i, "!=")) {
-                    op = "!=";
-                    len = 2;
-                } else if (match_op(nodes, i, "<=")) {
-                    op = "<=";
-                    len = 2;
-                } else if (match_op(nodes, i, ">=")) {
-                    op = ">=";
-                    len = 2;
-                } else if (match_op(nodes, i, "<<")) {
-                    op = "<<";
-                    len = 2;
-                } else if (match_op(nodes, i, ">>")) {
-                    op = ">>";
-                    len = 2;
-                } else if (match_op(nodes, i, "&&")) {
-                    op = "&&";
-                    len = 2;
-                } else if (match_op(nodes, i, "||")) {
-                    op = "||";
-                    len = 2;
+                for (auto candidate : multi_ops) {
+                    if (match_op(nodes, i, candidate)) {
+                        op = candidate;
+                        len = candidate.size();
+                        break;
+                    }
                 }
-                tok = make_token(*tn, op);
+
+                token tok = make_token(*tn, op);
                 res.push_back({ true, tok, {} });
                 i += len;
                 continue;

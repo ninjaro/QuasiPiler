@@ -22,8 +22,12 @@
  * SOFTWARE.
  */
 
+#include "expression.hpp"
 #include "grouper.hpp"
+
 #include <gtest/gtest.h>
+
+#include <utility>
 
 TEST(ArithmeticTest, ParseBinary) {
     std::string input = "a+b";
@@ -88,4 +92,43 @@ TEST(ArithmeticTest, ParseNestedGroups) {
     auto* post = dynamic_cast<unary_node*>(inner->nodes[0].get());
     ASSERT_NE(post, nullptr);
     EXPECT_FALSE(post->is_prefix);
+}
+
+TEST(ExpressionTest, TernaryBranches) {
+    std::vector<ast_node_ptr> nodes;
+    auto make_tok = [&](std::string w, const token_kind k) {
+        auto t = std::make_shared<token_node>();
+        t->value.word = std::move(w);
+        t->value.kind = k;
+        return t;
+    };
+    nodes.push_back(make_tok("a", token_kind::keyword));
+    nodes.push_back(make_tok("?", token_kind::special_character));
+    nodes.push_back(make_tok("b", token_kind::keyword));
+    nodes.push_back(make_tok(":", token_kind::separator));
+    nodes.push_back(make_tok("c", token_kind::keyword));
+    auto items = expression::make_items(nodes);
+    size_t idx = 0;
+    auto n = expression::parse_expression(items, idx, 0);
+    ASSERT_TRUE(std::dynamic_pointer_cast<ternary_node>(n));
+    EXPECT_EQ(idx, items.size());
+
+    idx = 0;
+    n = expression::parse_expression(items, idx, 3);
+    auto tok = std::dynamic_pointer_cast<token_node>(n);
+    ASSERT_TRUE(tok);
+    EXPECT_EQ(tok->value.word, "a");
+    EXPECT_EQ(idx, 1u);
+
+    items.pop_back();
+    idx = 0;
+    EXPECT_THROW(
+        expression::parse_expression(items, idx, 0), std::runtime_error
+    );
+}
+
+TEST(ExpressionTest, ParsePrefixUnexpectedEnd) {
+    std::vector<expression::item> items;
+    size_t idx = 0;
+    EXPECT_THROW(expression::parse_prefix(items, idx), std::runtime_error);
 }

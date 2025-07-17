@@ -26,6 +26,7 @@
 #define EXPRESSION_HPP
 
 #include "ast.hpp"
+#include <string_view>
 #include <unordered_map>
 #include <vector>
 
@@ -68,11 +69,10 @@ public:
     static ast_node_ptr parse_prefix(std::vector<item>& items, size_t& idx);
 
 private:
-    static token make_token(const token_node& tn, const std::string& word);
+    static token make_token(const token_node& tn, std::string_view word);
 
     static bool match_op(
-        const std::vector<ast_node_ptr>& nodes, size_t pos,
-        const std::string& op
+        const std::vector<ast_node_ptr>& nodes, size_t pos, std::string_view op
     );
 
     static const std::unordered_map<std::string, std::pair<int, bool>>

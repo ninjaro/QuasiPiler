@@ -105,7 +105,7 @@ void reader::reload_buffer() {
     }
     file_offset = ifs.tellg();
     buffer.resize(static_cast<size_t>(max_buffer_size));
-    ifs.read(&buffer[0], max_buffer_size);
+    ifs.read(buffer.data(), max_buffer_size);
     const auto got = ifs.gcount();
     buffer.resize(static_cast<size_t>(got));
     buffer_position = 0;

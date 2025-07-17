@@ -105,6 +105,9 @@ void grouper::peek() {
 }
 
 group_ptr grouper::identify_subgroup(const group_ptr& group) const {
+    if (std::dynamic_pointer_cast<placeholder_node>(group)) {
+        return group;
+    }
     group_ptr inode;
     const auto kind = group->kind;
     if (kind == group_kind::body || kind == group_kind::list
